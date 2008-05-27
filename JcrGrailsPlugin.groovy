@@ -188,7 +188,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
 
             mc.'static'.getNamespaceURI = {->
                 ensureNamespaceIsRegistered()
-                mc.'static'.getNamespacePrefix = {-> entry.value}
+                mc.'static'.getNamespaceURI = {-> entry.value}
                 entry.value
             }
         }
