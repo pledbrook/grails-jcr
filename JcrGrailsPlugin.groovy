@@ -48,7 +48,7 @@ import org.codehaus.groovy.grails.web.servlet.mvc.GrailsUrlHandlerMapping
  */
 class JcrGrailsPlugin {
     static final def log = Logger.getLogger(JcrGrailsPlugin.class)
-    def version = 0.1
+    def version = "0.2-SNAPSHOT"
     def dependsOn = [core: "1.0.2"]
     def loadAfter = ['controllers']
 
