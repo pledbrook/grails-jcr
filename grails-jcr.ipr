@@ -266,27 +266,27 @@
   <component name="libraryTable">
     <library name="Grails">
       <CLASSES>
-        <root url="file:///Developer/Java/grails/dist" />
+        <root url="file://$GRAILS_HOME$/dist" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>
-        <root url="file:///Developer/Java/grails/src/groovy" />
-        <root url="file:///Developer/Java/grails/src/persistence" />
-        <root url="file:///Developer/Java/grails/src/tiger" />
-        <root url="file:///Developer/Java/grails/src/scaffolding" />
-        <root url="file:///Developer/Java/grails/src/web" />
-        <root url="file:///Developer/Java/grails/src/commons" />
-        <root url="file:///Developer/Java/grails/src/grails" />
-        <root url="file:///Developer/Java/grails/src/war" />
-        <root url="file:///Developer/Java/grails/test/web" />
-        <root url="file:///Developer/Java/grails/test/tiger" />
-        <root url="file:///Developer/Java/grails/test/persistence" />
-        <root url="file:///Developer/Java/grails/test/grails-app" />
-        <root url="file:///Developer/Java/grails/test/commons" />
-        <root url="file:///Developer/Java/grails/test/scaffolding" />
-        <root url="file:///Developer/Java/grails/test/groovy" />
+        <root url="file://$GRAILS_HOME$/src/groovy" />
+        <root url="file://$GRAILS_HOME$/src/persistence" />
+        <root url="file://$GRAILS_HOME$/src/tiger" />
+        <root url="file://$GRAILS_HOME$/src/scaffolding" />
+        <root url="file://$GRAILS_HOME$/src/web" />
+        <root url="file://$GRAILS_HOME$/src/commons" />
+        <root url="file://$GRAILS_HOME$/src/grails" />
+        <root url="file://$GRAILS_HOME$/src/war" />
+        <root url="file://$GRAILS_HOME$/test/web" />
+        <root url="file://$GRAILS_HOME$/test/tiger" />
+        <root url="file://$GRAILS_HOME$/test/persistence" />
+        <root url="file://$GRAILS_HOME$/test/grails-app" />
+        <root url="file://$GRAILS_HOME$/test/commons" />
+        <root url="file://$GRAILS_HOME$/test/scaffolding" />
+        <root url="file://$GRAILS_HOME$/test/groovy" />
       </SOURCES>
-      <jarDirectory url="file:///Developer/Java/grails/dist" recursive="false" />
+      <jarDirectory url="file://$GRAILS_HOME$/dist" recursive="false" />
     </library>
     <library name="Grails Dependencies">
       <CLASSES>
