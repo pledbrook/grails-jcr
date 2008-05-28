@@ -1,3 +1,10 @@
 <plugin name='jcr' version='0.2-SNAPSHOT'>
-  <resources />
+  <author>Sergey Nebolsin</author>
+  <authorEmail>nebolsin@gmail.com</authorEmail>
+  <title>This plugin provides JCR-based persistence for Grails</title>
+  <documentation>http://grails.org/JCR+plugin</documentation>
+  <resources>
+    <resource>Config</resource>
+    <resource>UrlMappings</resource>
+  </resources>
 </plugin>

@@ -1,4 +1,5 @@
-/* Copyright 2004-2005 Graeme Rocher
+/*
+ * Copyright 2006-2008 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 package org.codehaus.groovy.grails.plugins.jcr.metaclass;
 
@@ -36,11 +38,9 @@ import java.util.regex.Pattern;
  * Created: 12-Feb-2007
  *
  */
-public abstract class AbstractFinderExpressionMethod extends
-        AbstractStaticMethodInvocation {
+public abstract class AbstractFinderExpressionMethod extends AbstractStaticMethodInvocation {
 
 	private static final Log LOG = LogFactory.getLog(AbstractFinderExpressionMethod.class);
-
 
     private String[] operators;
     private Pattern[] operatorPatterns;
