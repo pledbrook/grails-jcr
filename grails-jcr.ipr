@@ -318,10 +318,7 @@
       </CLASSES>
       <JAVADOC />
       <SOURCES>
-        <root url="jar:///Developer/Java/spring-modules-0.9/sources/spring-modules-jcr-src.zip!/" />
-        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-api/src/main/java" />
-        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-core/src/main/java" />
-        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-jcr-commons/src/main/java" />
+        <root url="jar:///Developer/Java/spring-modules-0.9-with-dependencies/sources/spring-modules-jcr-src.zip!/" />
       </SOURCES>
     </library>
   </component>

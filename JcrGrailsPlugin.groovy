@@ -54,8 +54,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
     def loadAfter = ['controllers']
 
     def doWithSpring = {
-
-        jcrRepository(RepositoryFactoryBean) {
+        jcrRepository(org.springmodules.jcr.jackrabbit.RepositoryFactoryBean) {
             configuration = "classpath:repository.xml"
             homeDir = "/repo"
         }
@@ -65,11 +64,13 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             bean.factoryMethod = "toCharArray"
         }
         jcrCredentials(SimpleCredentials, "user", jcrCharArrayPassword)
+
         jcrSessionFactory(org.springmodules.jcr.JcrSessionFactory) {bean ->
             bean.singleton = true
             repository = jcrRepository
             credentials = jcrCredentials
         }
+
         jcrTemplate(org.springmodules.jcr.JcrTemplate) {
             sessionFactory = jcrSessionFactory
             allowCreate = true
@@ -295,6 +296,10 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             list(null)
         }
 
+        /**
+         * list(Map args) dynamic methods. Returns all instances of this class in the JCR repository
+         * with respect to 'offset' and 'max' arguments in args.
+         */
         mc.'static'.list = {Map args ->
             if(!args) args = [:]
             def offset = args.offset ? args.offset.toInteger() : 0
@@ -358,10 +363,6 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             executeQuery(query, Collections.EMPTY_MAP)
         }
 
-        mc.'static'.executeQuery = {String query, Map args ->
-            executeQuery(query, args)
-        }
-
         mc.'static'.executeQuery = {String queryClause, Map args ->
             withSession {session ->
                 if(log.debugEnabled) log.debug "Attempting to execute query: $queryClause"
@@ -379,8 +380,8 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         def mc = dc.metaClass
 
         /**
-         * Dynamic findBy* method that uses finder expressions to formulate an XPath to be executed against a
-         * JCR content repository. Example findByTitleAndReleaseDate
+         * Dynamic findBy* method that uses finder expressions to formulate an XPath to be executed against
+         * a JCR content repository. Example findByTitleAndReleaseDate
          */
         mc.'static'./^(findBy)(\w+)$/ = {matcher, args ->
             def result = null
@@ -393,8 +394,8 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         }
 
         /**
-         * Dynamic countBy* method that uses finder expressions to formulate an XPath to be executed against a
-         * JCR content repository. Example findByTitleAndReleaseDate
+         * Dynamic countBy* method that uses finder expressions to formulate an XPath to be executed against
+         * a JCR content repository. Example findByTitleAndReleaseDate
          */
         mc.'static'./^(countBy)(\w+)$/ = {matcher, args ->
             def result = 0
@@ -407,8 +408,8 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         }
 
         /**
-         * Dynamic findAllBy* method that uses finder expressions to formulate an XPath to be executed against a
-         * JCR content repository. Example findAllByTitleAndReleaseDate
+         * Dynamic findAllBy* method that uses finder expressions to formulate an XPath to be executed against
+         * a JCR content repository. Example findAllByTitleAndReleaseDate
          */
         mc.'static'./^(findAllBy)(\w+)$/ = {matcher, args ->
             def query = dc.getClazz()."queryFor${matcher.group(2)}"(* args)
@@ -423,7 +424,8 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         }
 
         /**
-         * Dynamic queryFor* method. Returns a String query for given finder expression. Example queryForTitleAndReleaseDate
+         * Dynamic queryFor* method. Returns a String query for given finder expression.
+         * Example queryForTitleAndReleaseDate
          */
         mc.'static'./^(queryFor)(\w+)$/ = {matcher, args ->
             def method = new ClosureInvokingXPathFinderMethod(~/^(queryFor)(\w+)$/,
@@ -484,6 +486,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             // return the lock
             lock
         }
+
         /**
          * getLock() method. Retrieves the lock held on the current Node, otherwise returns null
          */
@@ -497,6 +500,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             }
 
         }
+
         /**
          * unlock() method. Removes the lock held on the current node, or returns null
          * */
@@ -506,6 +510,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
                 if(node?.locked) node.unlock()
             }
         }
+
         /**
          * isLocked() method. Returns true if there is a lock on the specified object's Node
          */
@@ -521,24 +526,26 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
 
         /**
          * getVersionHistory() method. Returns the JCR VersionHistory for this object
-         * */
+         */
         mc.getVersionHistory = {->
             def node = getNode(delegate.UUID)
             node?.getVersionHistory()
         }
+
         /**
-         * eachVersion          {          v->          }          method. Allows iteration over each version of this object. Invoking the specified
+         * eachVersion { version -> } method. Allows iteration over each version of this object. Invoking the specified
          * closure on each iteration
-         * */
+         */
         mc.eachVersion = {Closure callable ->
             getVersionHistory().allVersions.each {v ->
                 callable(v)
             }
         }
+
         /**
-         * findVersion          {          v->          }          method. Iterates over each version of the VersionHistory and returns the first one that
+         * findVersion { v -> } method. Iterates over each version of the VersionHistory and returns the first one that
          * matches the specified predicate (closure that returns a boolean)
-         * */
+         */
         mc.findVersion = {Closure callable ->
             def versions = getVersionHistory().allVersions
             def result = null
@@ -551,22 +558,25 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             // return version
             result
         }
+
         /**
          * getBaseVersion() method. Returns the JCR Version instance that represents the base Version of this object
-         * */
+         */
         mc.getBaseVersion = {->
             def node = getNode(delegate.UUID)
             node?.getBaseVersion()
         }
+
         /**
          * restore(Version vesrion) method. Restores the object to the version represented by the JCR Version instance
          * Note that this method will NOT remove existing versions
-         * */
+         */
         mc.restore = {Version v ->
             def node = getNode(delegate.UUID)
             node.restore(v, false)
             bind(delegate, node)
         }
+
         mc.restore = {Version v, boolean removeExisting ->
             def node = getNode(delegate.UUID)
             node.restore(v, removeExisting)
