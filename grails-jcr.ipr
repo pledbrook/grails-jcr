@@ -298,23 +298,8 @@
     </library>
     <library name="Jcr">
       <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/lucene-core-2.2.0.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/jcr-1.0.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-text-extractors-1.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/slf4j-log4j12-1.3.0.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-api-1.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/commons-codec-1.2.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jcl104-over-slf4j-1.3.0.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-core-1.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/xalan-2.7.0.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/derby-10.2.1.6.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-jcr-commons-1.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-spi-commons-1.4.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/spring-modules-jcr.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/commons-collections-3.2.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/slf4j-api-1.3.0.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/concurrent-1.3.4.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-spi-1.4.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>

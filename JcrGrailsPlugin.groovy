@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-import org.springmodules.jcr.jackrabbit.*
 import org.springmodules.jcr.*
 import javax.jcr.*
 import javax.jcr.query.*
@@ -28,7 +27,6 @@ import org.springframework.context.ApplicationContext
 import org.codehaus.groovy.grails.commons.metaclass.DynamicMethodsExpandoMetaClass
 import org.apache.log4j.Logger
 import org.springmodules.jcr.support.OpenSessionInViewInterceptor
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsUrlHandlerMapping
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.transaction.support.TransactionCallback
 
@@ -50,48 +48,37 @@ import org.springframework.transaction.support.TransactionCallback
  */
 class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.class)
     def version = "0.2-SNAPSHOT"
-    def dependsOn = [core: "1.0.2"]
+    def author = "Sergey Nebolsin"
+    def authorEmail = "nebolsin@gmail.com"
+    def title = "This plugin provides JCR-based persistence for Grails"
+    def documentation = "http://grails.org/JCR+plugin"
+
+    def dependsOn = [core: "1.0.2 > *"]
     def loadAfter = ['controllers']
 
     def doWithSpring = {
-        jcrRepository(org.springmodules.jcr.jackrabbit.RepositoryFactoryBean) {
-            configuration = "classpath:repository.xml"
-            homeDir = "/repo"
-        }
-
-        jcrPassword(String, "")
-        jcrCharArrayPassword(jcrPassword) {bean ->
-            bean.factoryMethod = "toCharArray"
-        }
-        jcrCredentials(SimpleCredentials, "user", jcrCharArrayPassword)
-
-        jcrSessionFactory(org.springmodules.jcr.JcrSessionFactory) {bean ->
-            bean.singleton = true
-            repository = jcrRepository
-            credentials = jcrCredentials
-        }
-
-        jcrTemplate(org.springmodules.jcr.JcrTemplate) {
-            sessionFactory = jcrSessionFactory
-            allowCreate = true
-        }
-
-        jcrTransactionManager(org.springmodules.jcr.jackrabbit.LocalTransactionManager) {
-            sessionFactory = jcrSessionFactory
-        }
-
         if(manager?.hasGrailsPlugin("controllers")) {
             jcrOpenSessionInViewInterceptor(OpenSessionInViewInterceptor) {
-                sessionFactory = jcrSessionFactory
+                sessionFactory = ref('jcrSessionFactory')
             }
             grailsUrlHandlerMapping.interceptors << jcrOpenSessionInViewInterceptor
+        }
+    }
+
+    def doWithApplicationContext = {ctx ->
+        if(!ctx.containsBean("jcrSessionFactory")) {
+            throw new GrailsConfigurationException("Grails JCR plugin cannot be used without an implementation plugin, for example Grails JackRabbit plugin")
         }
     }
 
     def doWithDynamicMethods = {ctx ->
         application.domainClasses.each {GrailsDomainClass dc ->
             if(dc.mappingStrategy == "jcr") {
-                if(!dc.hasProperty("UUID")) throw new GrailsConfigurationException("JCR Mapped domain class [${dc.name}] must define a property called [UUID], which is used to store the unique id of the obj within the JCR repository")
+                if(!dc.hasProperty("UUID")) {
+                    throw new GrailsConfigurationException("""JCR Mapped domain class [${dc.name}] must define \
+                        a property called [UUID], which is used to store the unique id of the obj within \
+                        the JCR repository""")
+                }
 
                 def mc = new DynamicMethodsExpandoMetaClass(dc.getClazz(), true)
                 mc.initialize()
@@ -236,11 +223,9 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
 
         mc.'static'.delete = {->
             withSession {session ->
-                def node = null
                 def obj = delegate
                 if(obj.UUID) {
-                    node = getNode(obj.UUID)
-                    node?.remove()
+                    getNode(obj.UUID)?.remove()
                 }
                 session.save()
             }
@@ -283,7 +268,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
                 obj.UUID = node.UUID
             }
         }
-
+           
     }
 
     private addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
@@ -584,10 +569,6 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         }
     }
 
-
-    def doWithApplicationContext = {ctx ->
-
-    }
 
     def onChange = {event ->
         def configurator = event.ctx.grailsConfigurator

@@ -31,10 +31,12 @@
       <library name="Grails User Library">
         <CLASSES>
           <root url="file://$MODULE_DIR$/lib" />
+          <root url="file://$MODULE_DIR$/plugins/jackrabbit-0.1/lib" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/plugins/jackrabbit-0.1/lib" recursive="false" />
       </library>
     </orderEntry>
     <orderEntry type="library" name="GRAILS" level="application" />
