@@ -158,7 +158,6 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         if(ns instanceof Map) {
             def entry = ns.entrySet().iterator().next()
             mc.'static'.ensureNamespaceIsRegistered = {
-                println "HEY"
                 withSession {session ->
                     log.info "Registering name space in JCR Content Repository: $ns"
                     def namespaceRegistry = session.workspace.namespaceRegistry
