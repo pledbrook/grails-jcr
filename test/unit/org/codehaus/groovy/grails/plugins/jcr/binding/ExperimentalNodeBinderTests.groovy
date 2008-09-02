@@ -9,6 +9,8 @@ import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
 import javax.jcr.NamespaceException
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
+import javax.jcr.Property
+import javax.jcr.Value
 
 /**
  * Test cases for ExperimentalNodeBinder.
@@ -49,6 +51,7 @@ class TestClass {
     URI uri
 
     Map map
+    List list
 }
 """)
         testDomainClass = new DefaultGrailsDomainClass(testClass)
@@ -147,5 +150,44 @@ class TestClass {
         valueNode = mapNode.getNode("bbb")
         assertEquals "bbb", valueNode.getProperty("grails:mapKey").getString()
         assertEquals 123L, valueNode.getProperty("grails:mapValue").getLong()
+    }
+
+    void testBindListToNode() {
+        def target = testDomainClass.newInstance()
+
+        target.list = ["aaa", "bbb"]
+
+        def binder = new ExperimentalNodeBinder()
+        binder.bindToNode(testNode, target)
+
+        Value[] values = testNode.getProperty("list").getValues()
+        assertEquals "aaa", values[0].getString()
+        assertEquals "bbb", values[1].getString()
+    }
+
+    void testBindMultitypedListToNode() {
+        def target = testDomainClass.newInstance()
+
+        target.list = ["aaa", 123L, new URI("http://grails.org")]
+
+        def binder = new ExperimentalNodeBinder()
+        binder.bindToNode(testNode, target)
+
+        assertTrue testNode.hasNode("list")
+        def listNode = testNode.getNode("list")
+
+        assertEquals 3, listNode.getNodes().size
+
+        assertTrue listNode.hasNode("0")
+        def valueNode = listNode.getNode("0")
+        assertEquals "aaa", valueNode.getProperty("grails:collectionValue").getString()
+
+        assertTrue listNode.hasNode("1")
+        valueNode = listNode.getNode("1")
+        assertEquals 123L, valueNode.getProperty("grails:collectionValue").getLong()
+
+        assertTrue listNode.hasNode("2")
+        valueNode = listNode.getNode("2")
+        assertEquals "http://grails.org", valueNode.getProperty("grails:collectionValue").getString()
     }
 }

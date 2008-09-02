@@ -49,12 +49,12 @@ class ExperimentalNodeBinder {
         collectionNode.getNodes().each { Node value -> value.remove() }
 
         source.eachWithIndex { value, index ->
-            Node valueNode = collectionNode.addNode(index)
+            Node valueNode = collectionNode.addNode(index.toString())
             bindToJcrProperty(valueNode, JcrConstants.COLLECTION_VALUE_PROPERTY_NAME, value)
         }
     }
 
-    private bindMapToJcrNode(Node mapNode, Map source, BindingContext context) {
+    private bindMapToJcrNode(Node mapNode, Map source) {
         mapNode.getNodes().each { Node value ->
             if(!source.containsKey(value.getName())) value.remove()
         }
@@ -82,15 +82,30 @@ class ExperimentalNodeBinder {
     private bindCollectionToJcrProperty(Node node, String jcrPropertyName, Collection values) {
         def result = []
         def type = null
+        def expandCollection = false
         values.each { value ->
             if(!type) {
                 type = value.getClass()
             } else {
-                if(type != value.getClass()) throw new GrailsBindingException("Binding of collections with entities of different types is not supported yet")
+                if(type != value.getClass()) expandCollection = true
             }
             result << createValue(value, node.getSession().getValueFactory())
         }
-        node.setProperty(jcrPropertyName, result as Value[])
+
+        if(!expandCollection) {
+            node.setProperty(jcrPropertyName, result as Value[])
+        } else {
+            Node collectionNode
+            if(node.hasNode(jcrPropertyName)) {
+                collectionNode = node.getNode(jcrPropertyName)
+            } else {
+                collectionNode = node.addNode(jcrPropertyName)
+                collectionNode.addMixin(JcrConstants.MIXIN_REFERENCEABLE)
+            }
+
+            bindCollectionToJcrNode(collectionNode, values)
+            node.setProperty(jcrPropertyName, collectionNode)
+        }
     }
 
     private bindMapToJcrProperty(Node node, String jcrPropertyName, Map value) {
@@ -102,7 +117,7 @@ class ExperimentalNodeBinder {
             mapNode.addMixin(JcrConstants.MIXIN_REFERENCEABLE)
         }
 
-        bindMapToJcrNode(mapNode, value, context)
+        bindMapToJcrNode(mapNode, value)
         node.setProperty(jcrPropertyName, mapNode)
     }
 
