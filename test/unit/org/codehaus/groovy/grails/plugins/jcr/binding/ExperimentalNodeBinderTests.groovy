@@ -9,7 +9,6 @@ import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
 import javax.jcr.NamespaceException
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
-import javax.jcr.Property
 import javax.jcr.Value
 
 /**
@@ -62,40 +61,6 @@ class TestClass {
     void tearDown() {
         testNode.remove()
         session.logout()
-    }
-
-    void testSimpleBindFromNode() {
-
-        def cal = new GregorianCalendar()
-
-        testNode.setProperty("string", "foo");
-        testNode.setProperty("booleanObject", true);
-        testNode.setProperty("booleanPrimitive", false);
-        testNode.setProperty("longObject", 12345678L);
-        testNode.setProperty("longPrimitive", 987654321L);
-        testNode.setProperty("intObject", 12345);
-        testNode.setProperty("intPrimitive", 98765);
-        testNode.setProperty("date", cal);
-        testNode.setProperty("calendar", cal);
-        testNode.setProperty("url", "http://grails.org")
-        testNode.setProperty("uri", "http://grails.org")
-
-        def target = testDomainClass.newInstance()
-
-        def binder = new ExperimentalNodeBinder()
-        binder.bindFrom(testNode)
-
-        assertEquals "foo", target.string
-        assertTrue target.booleanObject
-        assertFalse target.booleanPrimitive
-        assertEquals 12345678L, target.longObject
-        assertEquals 987654321L, target.longPrimitive
-        assertEquals 12345, target.intObject
-        assertEquals 98765, target.intPrimitive
-        assertEquals cal.getTime(), target.date
-        assertEquals cal, target.calendar
-        assertEquals new URL("http://grails.org"), target.url
-        assertEquals new URI("http://grails.org"), target.uri
     }
 
     void testSimpleBindToNode() {
@@ -190,4 +155,39 @@ class TestClass {
         valueNode = listNode.getNode("2")
         assertEquals "http://grails.org", valueNode.getProperty("grails:collectionValue").getString()
     }
+
+//    void testSimpleBindFromNode() {
+//
+//        def cal = new GregorianCalendar()
+//
+//        testNode.setProperty("string", "foo");
+//        testNode.setProperty("booleanObject", true);
+//        testNode.setProperty("booleanPrimitive", false);
+//        testNode.setProperty("longObject", 12345678L);
+//        testNode.setProperty("longPrimitive", 987654321L);
+//        testNode.setProperty("intObject", 12345);
+//        testNode.setProperty("intPrimitive", 98765);
+//        testNode.setProperty("date", cal);
+//        testNode.setProperty("calendar", cal);
+//        testNode.setProperty("url", "http://grails.org")
+//        testNode.setProperty("uri", "http://grails.org")
+//
+//        def target = testDomainClass.newInstance()
+//
+//        def binder = new ExperimentalNodeBinder()
+//        binder.bindFrom(testNode)
+//
+//        assertEquals "foo", target.string
+//        assertTrue target.booleanObject
+//        assertFalse target.booleanPrimitive
+//        assertEquals 12345678L, target.longObject
+//        assertEquals 987654321L, target.longPrimitive
+//        assertEquals 12345, target.intObject
+//        assertEquals 98765, target.intPrimitive
+//        assertEquals cal.getTime(), target.date
+//        assertEquals cal, target.calendar
+//        assertEquals new URL("http://grails.org"), target.url
+//        assertEquals new URI("http://grails.org"), target.uri
+//    }
+
 }
