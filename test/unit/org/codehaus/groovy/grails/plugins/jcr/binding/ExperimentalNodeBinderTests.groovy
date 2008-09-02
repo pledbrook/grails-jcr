@@ -7,6 +7,8 @@ import javax.jcr.Repository
 import javax.jcr.Node
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
+import javax.jcr.NamespaceException
+import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 
 /**
  * Test cases for ExperimentalNodeBinder.
@@ -22,6 +24,13 @@ class ExperimentalNodeBinderTests extends GroovyTestCase {
         super.setUp();
         repo = new TransientRepository();
         session = repo.login(new SimpleCredentials("Sergey Nebolsin", "passwd".toCharArray()));
+        def namespaceRegistry = session.getWorkspace().getNamespaceRegistry()
+        try {
+            namespaceRegistry.getURI(JcrConstants.GRAILS_NAMESPACE_KEY)
+        } catch (NamespaceException ne) {
+            namespaceRegistry.registerNamespace(JcrConstants.GRAILS_NAMESPACE_KEY, JcrConstants.GRAILS_NAMESPACE_URI)
+        }
+
         def testClass = gcl.parseClass("""\
 class TestClass {
     Long id
@@ -38,6 +47,8 @@ class TestClass {
     Calendar calendar
     URL url
     URI uri
+
+    Map map
 }
 """)
         testDomainClass = new DefaultGrailsDomainClass(testClass)
@@ -68,7 +79,7 @@ class TestClass {
 
         def target = testDomainClass.newInstance()
 
-        def binder = new ExperimentalNodeBinder(domainClass: testDomainClass, target: target)
+        def binder = new ExperimentalNodeBinder()
         binder.bindFrom(testNode)
 
         assertEquals "foo", target.string
@@ -100,8 +111,8 @@ class TestClass {
         target.url = new URL("http://grails.org")
         target.uri = new URI("http://grails.org")
 
-        def binder = new ExperimentalNodeBinder(domainClass: testDomainClass, target: target)
-        binder.bindTo(testNode)
+        ExperimentalNodeBinder binder = new ExperimentalNodeBinder()
+        binder.bindToNode(testNode, target)
 
         assertEquals "foo", testNode.getProperty("string").getString()
         assertTrue testNode.getProperty("booleanObject").getBoolean()
@@ -114,5 +125,27 @@ class TestClass {
         assertEquals cal, testNode.getProperty("calendar").getDate()
         assertEquals "http://grails.org", testNode.getProperty("url").getString()
         assertEquals "http://grails.org", testNode.getProperty("uri").getString()
+    }
+
+    void testBindMapToNode() {
+        def target = testDomainClass.newInstance()
+
+        target.map = [aaa: "bbb", bbb: 123L]
+
+        def binder = new ExperimentalNodeBinder()
+        binder.bindToNode(testNode, target)
+
+        assertTrue testNode.hasNode("map")
+        def mapNode = testNode.getNode("map")
+
+        assertTrue mapNode.hasNode("aaa")
+        def valueNode = mapNode.getNode("aaa")
+        assertEquals "aaa", valueNode.getProperty("grails:mapKey").getString()
+        assertEquals "bbb", valueNode.getProperty("grails:mapValue").getString()
+
+        assertTrue mapNode.hasNode("bbb")
+        valueNode = mapNode.getNode("bbb")
+        assertEquals "bbb", valueNode.getProperty("grails:mapKey").getString()
+        assertEquals 123L, valueNode.getProperty("grails:mapValue").getLong()
     }
 }

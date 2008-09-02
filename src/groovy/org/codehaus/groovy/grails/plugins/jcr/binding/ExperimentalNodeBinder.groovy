@@ -2,139 +2,175 @@ package org.codehaus.groovy.grails.plugins.jcr.binding
 
 import javax.jcr.Node
 import javax.jcr.Value
-import javax.jcr.Property
 import javax.jcr.ValueFactory
 import java.sql.Timestamp
 import javax.jcr.RepositoryException
 import org.codehaus.groovy.grails.web.servlet.mvc.GrailsWebRequest
 import org.springframework.web.context.request.RequestContextHolder
-import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
-import org.springframework.util.StringUtils
-import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
-import org.springframework.beans.BeanWrapper
-import org.springframework.beans.PropertyAccessorFactory
+import org.springframework.util.ClassUtils
+import org.codehaus.groovy.grails.commons.ApplicationHolder
 
 /**
- * Created by IntelliJ IDEA.
- * User: nebolsin
- * Date: Jul 1, 2008
- * Time: 1:39:46 PM
- * To change this template use File | Settings | File Templates.
+ * Universal binder for binding Object (possibly Grails Domain class) to JCR Node
+ * and vise versa.
+ *
+ * @author Sergey Nebolsin (nebolsin@gmail.com)
  */
 class ExperimentalNodeBinder {
 
-    GrailsDomainClass domainClass
-    BeanWrapper target
-    String namespace
+    BindingContext context = new BindingContext()
 
-    void setDomainClass(GrailsDomainClass domainClass) {
-        this.domainClass = domainClass
-        this.namespace = domainClass.getPropertyValue(JcrConstants.NAMESPACE_PROPERTY_NAME) ?: ""
-        if(StringUtils.hasLength(this.namespace)) this.namespace += ":"
+    public void bindToNode(Node node, Object source) {
+        bindToJcrNode(node, source)
     }
 
-    void setTarget(Object target) {
-        this.target = PropertyAccessorFactory.forBeanPropertyAccess(target)
-    }
+    private bindToJcrNode(Node node, Object source) {
+        println "Binding $source to node: ${node.getPath()}"
+        context.push source, node
 
-    void bindFrom(Node node) {
-        def deferredProperties = []
-        filterBindableProperties(node).each { Property jcrProperty ->
-            String propertyName = jcrProperty.getName() - namespace
-            println "Working with $propertyName"
-            GrailsDomainClassProperty grailsProperty = domainClass.getPropertyByName(propertyName)
-            if(grailsProperty?.isPersistent()) {
-                bindFromJcrProperty(jcrProperty, grailsProperty)
-            } else {
-                deferredProperties << jcrProperty
-            }
-            bindFromFreeJcrProperties(deferredProperties)
-        }
-    }
-
-    void bindTo(Node node) {
-        domainClass.persistantProperties.each { GrailsDomainClassProperty grailsProperty ->
-            def type = target.getPropertyType(grailsProperty.name)
-            def value = target.getPropertyValue(grailsProperty.name)
-            def jcrPropertyName = "$namespace$grailsProperty.name"
-            def jcrValue = null
-            if(Collection.isAssignableFrom(type)) {
-
-            } else if(type.isArray()) {
-
-            } else if(Map.isAssignableFrom(type)) {
-                jcrValue = bindMapToJcrProperty(node, jcrPropertyName, value)
-            } else {
-                jcrValue = createValue(value, node.getSession().getValueFactory())
-            }
-            node.setProperty(jcrPropertyName, jcrValue)
-        }
-    }
-
-    private bindFromJcrProperty(Property jcrProperty, GrailsDomainClassProperty grailsProperty) {
-        if(jcrProperty.getDefinition().isMultiple()) {
-            // multi-valued property
+        def type = source.getClass()
+        node.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(type))
+        if(context.collection) {
+            bindCollectionToJcrNode(node, (Collection) source)
+        } else if(context.map) {
+            bindMapToJcrNode(node, (Map) source, context)
         } else {
-            target.setPropertyValue(grailsProperty.name, getValue(grailsProperty.getType(), jcrProperty.getValue()))
-        }
-    }
-
-    private bindFromFreeJcrProperties(jcrProperties) {
-
-    }
-
-    private bindToJcrProperty(Node node, String propertyName, Object value) {
-
-    }
-
-    private bindMapToJcrProperty(Node node, String propertyName, Map value) {
-        def mapNode = null
-        try{
-            mapNode = node.getNode(propertyName)
-            // remove properties corresponded to keys which are not presented in provided Map
-            filterBindableProperties(mapNode).findAll {!value.containsKey(getPlainName(it.name))}.each {Property jcrProperty ->
-                if(jcrProperty.getDefinition().isMultiple()) {
-                    jcrProperty.setValues(null)
-                } else {
-                    jcrProperty.setValue(null)
-                }
+            println context.propertyValues
+            context.propertyValues.each { propertyName, propertyValue ->
+                bindToJcrProperty(node, propertyName, propertyValue)
             }
-        } catch(javax.jcr.PathNotFoundException pnfe) {
-            mapNode = node.addNode(propertyName)
         }
 
-        value.each { key, value ->
-            bindToJcrProperty(mapNode, getFullName(key), value)
+        context.pop
+    }
+
+    private bindCollectionToJcrNode(Node collectionNode, Collection source) {
+        collectionNode.getNodes().each { Node value -> value.remove() }
+
+        source.eachWithIndex { value, index ->
+            Node valueNode = collectionNode.addNode(index)
+            bindToJcrProperty(valueNode, JcrConstants.COLLECTION_VALUE_PROPERTY_NAME, value)
         }
     }
 
-    /**
-     * Filters all JCR Node's properties and returns only "ours": those which start with the "$namespace:" prefix if
-     * namespace is specified, or properties without namespace, if domain class doesn't specify namespace.
-     */
-    private filterBindableProperties(Node node) {
-        node.getProperties().findAll {
-            def result = StringUtils.hasLength(namespace) ? it?.name?.startsWith(namespace) : it?.name?.indexOf(":") < 0
-            result && domainClass.hasProperty(it?.name)
+    private bindMapToJcrNode(Node mapNode, Map source, BindingContext context) {
+        mapNode.getNodes().each { Node value ->
+            if(!source.containsKey(value.getName())) value.remove()
+        }
+
+        source.each { key, value ->
+            Node valueNode = mapNode.addNode(key)
+            bindToJcrProperty(valueNode, JcrConstants.MAP_KEY_PROPERTY_NAME, key)
+            bindToJcrProperty(valueNode, JcrConstants.MAP_VALUE_PROPERTY_NAME, value)
         }
     }
 
-    private String getFullName(String name) {
-        if(name.indexOf(":") < 0) {
-            return namespace + name
-        }
-        name
-    }
-
-    private String getPlaneName(String name) {
-        def index = name.indexOf(":")
-        if(name.indexOf(":") < 0) {
-            return name
+    private bindToJcrProperty(Node node, String jcrPropertyName, Object value) {
+        def type = value.getClass()
+        if(Collection.isAssignableFrom(type)) {
+            bindCollectionToJcrProperty(node, jcrPropertyName, (Collection) value)
+        } else if(type.isArray()) {
+            bindCollectionToJcrProperty(node, jcrPropertyName, value.toList())
+        } else if(Map.isAssignableFrom(type)) {
+            bindMapToJcrProperty(node, jcrPropertyName, (Map) value)
         } else {
-            return name.substring(index + 1)
+            node.setProperty(jcrPropertyName, createValue(value, node.getSession().getValueFactory()))
         }
     }
+
+    private bindCollectionToJcrProperty(Node node, String jcrPropertyName, Collection values) {
+        def result = []
+        def type = null
+        values.each { value ->
+            if(!type) {
+                type = value.getClass()
+            } else {
+                if(type != value.getClass()) throw new GrailsBindingException("Binding of collections with entities of different types is not supported yet")
+            }
+            result << createValue(value, node.getSession().getValueFactory())
+        }
+        node.setProperty(jcrPropertyName, result as Value[])
+    }
+
+    private bindMapToJcrProperty(Node node, String jcrPropertyName, Map value) {
+        Node mapNode
+        if(node.hasNode(jcrPropertyName)) {
+            mapNode = node.getNode(jcrPropertyName)
+        } else {
+            mapNode = node.addNode(jcrPropertyName)
+            mapNode.addMixin(JcrConstants.MIXIN_REFERENCEABLE)
+        }
+
+        bindMapToJcrNode(mapNode, value, context)
+        node.setProperty(jcrPropertyName, mapNode)
+    }
+
+
+
+
+//    void bindFrom(Node node) {
+//        def deferredProperties = []
+//        filterBindableProperties(node).each { Property jcrProperty ->
+//            String propertyName = jcrProperty.getName() - namespace
+//            GrailsDomainClassProperty grailsProperty = domainClass.getPropertyByName(propertyName)
+//            if(grailsProperty?.isPersistent()) {
+//                bindFromJcrProperty(jcrProperty, grailsProperty)
+//            } else {
+//                deferredProperties << jcrProperty
+//            }
+//            bindFromFreeJcrProperties(deferredProperties)
+//        }
+//    }
+//
+//    private bindFromJcrProperty(Property jcrProperty, GrailsDomainClassProperty grailsProperty) {
+//        if(jcrProperty.getDefinition().isMultiple()) {
+//            // multi-valued property
+//        } else {
+//            target.setPropertyValue(grailsProperty.name, getValue(grailsProperty.getType(), jcrProperty.getValue()))
+//        }
+//    }
+//
+//    private retrieveValue(Property jcrProperty, Class targetClass) {
+//        if(Map.isAssignableFrom(targetClass)) {
+//            return retrieveMapValue(jcrProperty)
+//        } else if(Collection.isAssignableFrom(targetClass)) {
+//            return retrieveCollectionValue(jcrProperty)
+//        } else if(targetClass.isArray()) {
+//            return retrieveCollectionValue(jcrProperty).toArray()
+//        } else {
+//            return getValue(targetClass, jcrProperty.getValue())
+//        }
+//    }
+//
+//    private retrieveMapValue(Property jcrProperty) {
+//        Node mapNode = jcrProperty.getNode()
+//        def result = []
+//        filterBindableProperties(mapNode).each { Property jcrProp ->
+//            result[getPlaneName(jcrProp.name)] = retrieveValue(jcrProp)
+//
+//        }
+//    }
+//
+//    private retrieveCollectionValue(Property jcrProperty) {
+//
+//    }
+//
+//    private bindFromFreeJcrProperties(jcrProperties) {
+//
+//    }
+//
+//
+//    /**
+//     * Filters all JCR Node's properties and returns only "ours": those which start with the "$namespace:" prefix if
+//     * namespace is specified, or properties without namespace, if domain class doesn't specify namespace.
+//     */
+//    private filterBindableProperties(Node node) {
+//        node.getProperties().findAll {
+//            def result = StringUtils.hasLength(namespace) ? it?.name?.startsWith(namespace) : it?.name?.indexOf(":") < 0
+//            result && domainClass.hasProperty(it?.name)
+//        }
+//    }
 
     /**
      * Converts gives object to appropriate JCR Value instance.
@@ -193,7 +229,7 @@ class ExperimentalNodeBinder {
         } else if(targetClass.isEnum()) {
             return Enum.valueOf(targetClass, value.getString());
         } else {
-            return target.convertIfNecessary(value.getString(), targetClass)
+//            return target.convertIfNecessary(value.getString(), targetClass)
         }
     }
 

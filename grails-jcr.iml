@@ -4,14 +4,8 @@
     <facet type="Grails" name="Grails">
       <configuration />
     </facet>
-    <facet type="Spring" name="Spring" implicit="true">
-      <configuration>
-        <options>
-          <option name="enableValidation" value="false" />
-          <option name="reportErrorsAsWarnings" value="true" />
-        </options>
-        <customNs />
-      </configuration>
+    <facet type="Groovy" name="Groovy">
+      <configuration />
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
@@ -23,9 +17,10 @@
       <sourceFolder url="file://$MODULE_DIR$/test/unit" isTestSource="true" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="grails-1.0.3" level="application" />
+    <orderEntry type="library" name="groovy-1.5.6" level="application" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="library" name="Grails" level="project" />
-    <orderEntry type="library" name="Grails Dependencies" level="project" />
     <orderEntry type="library" name="Jcr" level="project" />
     <orderEntry type="module-library">
       <library name="Grails User Library">
@@ -40,7 +35,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="GRAILS" level="application" />
-    <orderEntryProperties />
+    <orderEntry type="library" name="JackRabbit" level="project" />
   </component>
 </module>
 

@@ -21,6 +21,7 @@ import javax.jcr.query.*
 import javax.jcr.lock.*
 import javax.jcr.version.*
 import org.codehaus.groovy.grails.exceptions.*
+import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import org.codehaus.groovy.grails.plugins.jcr.binding.*
 import org.codehaus.groovy.grails.plugins.jcr.metaclass.*
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
@@ -160,7 +161,12 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             mc.'static'.ensureNamespaceIsRegistered = {
                 withSession {session ->
                     log.info "Registering name space in JCR Content Repository: $ns"
-                    def namespaceRegistry = session.workspace.namespaceRegistry
+                    NamespaceRegistry namespaceRegistry = session.workspace.namespaceRegistry
+                    try {
+                        namespaceRegistry.getURI(JcrConstants.GRAILS_NAMESPACE_KEY)
+                    } catch (NamespaceException ne) {
+                        namespaceRegistry.registerNamespace(JcrConstants.GRAILS_NAMESPACE_KEY, JcrConstants.GRAILS_NAMESPACE_URI)
+                    }
                     try {
                         namespaceRegistry.getURI(entry.key)
                     } catch (NamespaceException ne) {

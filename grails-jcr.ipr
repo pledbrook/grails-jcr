@@ -53,6 +53,7 @@
     <option name="ADDITIONAL_OPTIONS_STRING" value="" />
     <option name="MAXIMUM_HEAP_SIZE" value="128" />
   </component>
+  <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false" />
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
   </component>
@@ -222,13 +223,16 @@
       </item>
     </group>
   </component>
+  <component name="ProjectDetails">
+    <option name="projectName" value="grails-jcr" />
+  </component>
   <component name="ProjectFileVersion" converted="true" />
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/grails-jcr.iml" filepath="$PROJECT_DIR$/grails-jcr.iml" />
     </modules>
   </component>
-  <component name="ProjectRootManager" version="2" assert-keyword="true" jdk-15="false" project-jdk-name="1.5" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" assert-keyword="true" jdk-15="true" project-jdk-name="1.5" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="ResourceManagerContainer">
@@ -257,6 +261,7 @@
         </entry>
       </map>
     </option>
+    <option name="myVersion" value="123" />
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="" />
@@ -293,7 +298,9 @@
         <root url="file://$GRAILS_HOME$/lib" />
       </CLASSES>
       <JAVADOC />
-      <SOURCES />
+      <SOURCES>
+        <root url="file:///Developer/Java/spring-framework-2.5.4/src" />
+      </SOURCES>
       <jarDirectory url="file://$GRAILS_HOME$/lib" recursive="false" />
     </library>
     <library name="Jcr">
@@ -301,10 +308,23 @@
         <root url="jar://$PROJECT_DIR$/lib/jcr-1.0.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/spring-modules-jcr.jar!/" />
       </CLASSES>
-      <JAVADOC />
+      <JAVADOC>
+        <root url="file:///Developer/Java/jsr170-1.0/docs" />
+      </JAVADOC>
       <SOURCES>
         <root url="jar:///Developer/Java/spring-modules-0.9-with-dependencies/sources/spring-modules-jcr-src.zip!/" />
       </SOURCES>
+    </library>
+    <library name="JackRabbit">
+      <CLASSES>
+        <root url="file:///Users/nebolsin/Documents/Projects/grails-jackrabbit/lib" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-core/src/main/java" />
+        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-api/src/main/java" />
+      </SOURCES>
+      <jarDirectory url="file:///Users/nebolsin/Documents/Projects/grails-jackrabbit/lib" recursive="false" />
     </library>
   </component>
   <UsedPathMacros>
