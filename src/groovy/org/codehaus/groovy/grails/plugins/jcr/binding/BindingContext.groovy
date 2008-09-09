@@ -1,6 +1,6 @@
 package org.codehaus.groovy.grails.plugins.jcr.binding
 
-import javax.jcr.Item
+import javax.jcr.Node
 import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.codehaus.groovy.grails.commons.ApplicationHolder
 
@@ -28,23 +28,27 @@ class BindingContext {
         nodesToObjectsCache[conf.item] = conf.object
     }
 
-    def push(Object object, Item item) {
-        push(new BindingConfiguration(object, item, this))
+    def push(Object object, Node node) {
+        push(new BindingConfiguration(object, node, this))
     }
 
     def pop() {
         configurations.removeFirst
     }
 
-    Item getItem(Object object) {
+    Node getNode(Object object) {
         objectsToNodesCache[object]
     }
 
-    Object getObject(Item item) {
-        nodesToObjectsCache[item]
+    Object getObject(Node node) {
+        nodesToObjectsCache[node]
     }
 
     def propertyMissing(String name) {
         getConfig()."$name"
+    }
+
+    def methodMissing(String name, args) {
+        getConfig().invokeMethod(name, args)
     }
 }

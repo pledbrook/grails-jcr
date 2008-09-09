@@ -1,12 +1,13 @@
 package org.codehaus.groovy.grails.plugins.jcr.binding
 
-import javax.jcr.Item
+import javax.jcr.Node
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import java.beans.PropertyDescriptor
 import org.springframework.beans.BeanWrapper
 import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 import org.springframework.beans.PropertyAccessorFactory
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
+import javax.jcr.Value
 
 /**
  * TODO: write javadoc
@@ -18,7 +19,8 @@ class BindingConfiguration {
 
     BindingContext context
     Object object
-    Item item
+    BeanWrapper objectWrapper
+    Node node
     GrailsDomainClass domainClass
     def propertyValues = [:]
     boolean collection
@@ -29,9 +31,12 @@ class BindingConfiguration {
             namespace: ''
     ]
 
-    public BindingConfiguration(Object object, Item item, BindingContext context) {
+    public BindingConfiguration(Object object, Node node, BindingContext context) {
         this.object = object
-        this.item = item
+        if(object != null) {
+            objectWrapper = PropertyAccessorFactory.forBeanPropertyAccess(object)
+        }
+        this.node = node
         this.context = context
         configure()
     }
@@ -50,11 +55,9 @@ class BindingConfiguration {
         } else if(Map.isAssignableFrom(type)) {
             map = true
         } else {
-            BeanWrapper src = PropertyAccessorFactory.forBeanPropertyAccess(object)
-
             // set namespace if configured in class
-            if(src.isReadableProperty(JcrConstants.NAMESPACE_PROPERTY_NAME)) {
-                mapping.namespace = src.getPropertyValue(JcrConstants.NAMESPACE_PROPERTY_NAME) ?: ""
+            if(objectWrapper.isReadableProperty(JcrConstants.NAMESPACE_PROPERTY_NAME)) {
+                mapping.namespace = objectWrapper.getPropertyValue(JcrConstants.NAMESPACE_PROPERTY_NAME) ?: ""
                 if(StringUtils.hasLength(mapping.namespace)) mapping.namespace += ":"
             }
 
@@ -63,28 +66,20 @@ class BindingConfiguration {
 
                 // we will use DSL configuration here in the future
                 domainClass.persistantProperties.each {GrailsDomainClassProperty prop ->
-                    propertyValues[getFullName(prop.name)] = object."$prop.name"
+                    propertyValues[prop.name] = object."$prop.name"
                 }
 
             } else {
-                src.getPropertyDescriptors().findAll {PropertyDescriptor pd ->
+                objectWrapper.getPropertyDescriptors().findAll {PropertyDescriptor pd ->
                     !disallowedProperties.contains(pd.getName())
                 }.each {PropertyDescriptor pd ->
-                    propertyValues[getFullName(pd.getName())] = src.getPropertyValue(pd.getName())
+                    propertyValues[pd.getName()] = objectWrapper.getPropertyValue(pd.getName())
                 }
             }
 
         }
 
         println "Configured $type.name - $mapping"
-    }
-
-    def getFullName(String name) {
-        if(name.indexOf(':') < 0) {
-            return mapping.namespace + name
-        } else {
-            return name
-        }
     }
 
     boolean isDomainClass() {
@@ -95,4 +90,42 @@ class BindingConfiguration {
         mapping[name]
     }
 
+    Object getNodePropertyValue(Node node, String propertyName, Class targetClass) {
+        if(!node.hasProperty(propertyName)) {
+            throw new GrailsBindingException("Node ${node.getPath()} doesn't have property with name $propertyName")
+        }
+        Value value = node.getProperty(propertyName).getValue()
+        return JcrHelper.getOptimalValue(value, targetClass)
+    }
+
+    void setNodePropertyValue(Node node, String propertyName, Object value) {
+        node.setProperty(propertyName, JcrHelper.createValue(value, node.getSession().getValueFactory()))
+    }
+
+    Class getObjectPropertyType(String propertyName) {
+        String name = removeNamespaceIfNecessary(propertyName)
+        return objectWrapper.getPropertyType(name)
+    }
+
+    void setObjectProperty(String propertyName, Object value) {
+        String name = removeNamespaceIfNecessary(propertyName)
+        objectWrapper.setPropertyValue name, value
+    }
+
+    String addNamespaceIfNecessaty(String name) {
+        if(name.indexOf(':') < 0) {
+            return mapping.namespace + name
+        } else {
+            return name
+        }
+    }
+
+    String removeNamespaceIfNecessary(String propertyName) {
+        if(propertyName.startsWith(mapping.namespace)) return propertyName - mapping.namespace
+        return propertyName
+    }
+
+    Object convertIfNecessary(Object value, Class targetClass) {
+        return objectWrapper.convertIfNecessary(value, targetClass)
+    }
 }

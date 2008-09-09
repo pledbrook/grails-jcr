@@ -17,24 +17,10 @@
       <sourceFolder url="file://$MODULE_DIR$/test/unit" isTestSource="true" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="library" name="grails-1.0.3" level="application" />
     <orderEntry type="library" name="groovy-1.5.6" level="application" />
-    <orderEntry type="inheritedJdk" />
-    <orderEntry type="library" name="Grails" level="project" />
     <orderEntry type="library" name="Jcr" level="project" />
-    <orderEntry type="module-library">
-      <library name="Grails User Library">
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/lib" />
-          <root url="file://$MODULE_DIR$/plugins/jackrabbit-0.1/lib" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-        <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
-        <jarDirectory url="file://$MODULE_DIR$/plugins/jackrabbit-0.1/lib" recursive="false" />
-      </library>
-    </orderEntry>
-    <orderEntry type="library" name="GRAILS" level="application" />
     <orderEntry type="library" name="JackRabbit" level="project" />
   </component>
 </module>

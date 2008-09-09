@@ -10,6 +10,8 @@ import org.springframework.web.context.request.RequestContextHolder
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import org.springframework.util.ClassUtils
 import org.codehaus.groovy.grails.commons.ApplicationHolder
+import javax.jcr.Property
+import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 
 /**
  * Universal binder for binding Object (possibly Grails Domain class) to JCR Node
@@ -19,7 +21,14 @@ import org.codehaus.groovy.grails.commons.ApplicationHolder
  */
 class ExperimentalNodeBinder {
 
+    ClassLoader classLoader = System.getClassLoader()
     BindingContext context = new BindingContext()
+
+    public ExperimentalNodeBinder() {}
+
+    public ExperimentalNodeBinder(ClassLoader classLoader) {
+        this.classLoader = classLoader
+    }
 
     public void bindToNode(Node node, Object source) {
         bindToJcrNode(node, source)
@@ -34,7 +43,7 @@ class ExperimentalNodeBinder {
         if(context.collection) {
             bindCollectionToJcrNode(node, (Collection) source)
         } else if(context.map) {
-            bindMapToJcrNode(node, (Map) source, context)
+            bindMapToJcrNode(node, (Map) source)
         } else {
             println context.propertyValues
             context.propertyValues.each { propertyName, propertyValue ->
@@ -75,7 +84,7 @@ class ExperimentalNodeBinder {
         } else if(Map.isAssignableFrom(type)) {
             bindMapToJcrProperty(node, jcrPropertyName, (Map) value)
         } else {
-            node.setProperty(jcrPropertyName, createValue(value, node.getSession().getValueFactory()))
+            context.setNodePropertyValue(node, jcrPropertyName, value)
         }
     }
 
@@ -89,7 +98,7 @@ class ExperimentalNodeBinder {
             } else {
                 if(type != value.getClass()) expandCollection = true
             }
-            result << createValue(value, node.getSession().getValueFactory())
+            result << JcrHelper.createValue(value, node.getSession().getValueFactory())
         }
 
         if(!expandCollection) {
@@ -117,158 +126,37 @@ class ExperimentalNodeBinder {
             mapNode.addMixin(JcrConstants.MIXIN_REFERENCEABLE)
         }
 
-        bindMapToJcrNode(mapNode, value)
+        bindToJcrNode(mapNode, value)
+
         node.setProperty(jcrPropertyName, mapNode)
     }
 
 
 
 
-//    void bindFrom(Node node) {
-//        def deferredProperties = []
-//        filterBindableProperties(node).each { Property jcrProperty ->
-//            String propertyName = jcrProperty.getName() - namespace
-//            GrailsDomainClassProperty grailsProperty = domainClass.getPropertyByName(propertyName)
-//            if(grailsProperty?.isPersistent()) {
-//                bindFromJcrProperty(jcrProperty, grailsProperty)
-//            } else {
-//                deferredProperties << jcrProperty
-//            }
-//            bindFromFreeJcrProperties(deferredProperties)
-//        }
-//    }
-//
-//    private bindFromJcrProperty(Property jcrProperty, GrailsDomainClassProperty grailsProperty) {
-//        if(jcrProperty.getDefinition().isMultiple()) {
-//            // multi-valued property
-//        } else {
-//            target.setPropertyValue(grailsProperty.name, getValue(grailsProperty.getType(), jcrProperty.getValue()))
-//        }
-//    }
-//
-//    private retrieveValue(Property jcrProperty, Class targetClass) {
-//        if(Map.isAssignableFrom(targetClass)) {
-//            return retrieveMapValue(jcrProperty)
-//        } else if(Collection.isAssignableFrom(targetClass)) {
-//            return retrieveCollectionValue(jcrProperty)
-//        } else if(targetClass.isArray()) {
-//            return retrieveCollectionValue(jcrProperty).toArray()
-//        } else {
-//            return getValue(targetClass, jcrProperty.getValue())
-//        }
-//    }
-//
-//    private retrieveMapValue(Property jcrProperty) {
-//        Node mapNode = jcrProperty.getNode()
-//        def result = []
-//        filterBindableProperties(mapNode).each { Property jcrProp ->
-//            result[getPlaneName(jcrProp.name)] = retrieveValue(jcrProp)
-//
-//        }
-//    }
-//
-//    private retrieveCollectionValue(Property jcrProperty) {
-//
-//    }
-//
-//    private bindFromFreeJcrProperties(jcrProperties) {
-//
-//    }
-//
-//
-//    /**
-//     * Filters all JCR Node's properties and returns only "ours": those which start with the "$namespace:" prefix if
-//     * namespace is specified, or properties without namespace, if domain class doesn't specify namespace.
-//     */
-//    private filterBindableProperties(Node node) {
-//        node.getProperties().findAll {
-//            def result = StringUtils.hasLength(namespace) ? it?.name?.startsWith(namespace) : it?.name?.indexOf(":") < 0
-//            result && domainClass.hasProperty(it?.name)
-//        }
-//    }
-
-    /**
-     * Converts gives object to appropriate JCR Value instance.
-     */
-    Value createValue(Object fieldValue, ValueFactory valueFactory) {
-        Class sourceClass = fieldValue.getClass();
-        if(sourceClass == String.class) {
-            return valueFactory.createValue((String) fieldValue);
-        } else if(Date.isAssignableFrom(sourceClass)) {
-            return valueFactory.createValue(getLocalizedCalendarInstance(((Date) fieldValue).getTime()));
-        } else if(Calendar.isAssignableFrom(sourceClass)) {
-            return valueFactory.createValue((Calendar) fieldValue);
-        } else if(sourceClass == InputStream.class) {
-            return valueFactory.createValue((InputStream) fieldValue);
-        } else if(sourceClass.isArray() && sourceClass.getComponentType() == byte.class) {
-            return valueFactory.createValue(new ByteArrayInputStream((byte[]) fieldValue));
-        } else if(sourceClass == Integer.class || sourceClass == int.class) {
-            return valueFactory.createValue((Integer) fieldValue);
-        } else if(sourceClass == Long.class || sourceClass == long.class) {
-            return valueFactory.createValue((Long) fieldValue);
-        } else if(sourceClass == Double.class || sourceClass == double.class) {
-            return valueFactory.createValue((Double) fieldValue);
-        } else if(sourceClass == Boolean.class || sourceClass == boolean.class) {
-            return valueFactory.createValue((Boolean) fieldValue);
-        } else if(sourceClass == Locale.class) {
-            return valueFactory.createValue(String.valueOf((Locale) fieldValue));
-        } else if(sourceClass.isEnum()) {
-            return valueFactory.createValue(String.valueOf(fieldValue))
+    def bindFrom(Node node) {
+        if(!node.hasProperty(JcrConstants.CLASS_PROPERTY_NAME)) {
+            throw new GrailsBindingException("Node doesn't contain class information, cannot bind from this node")
         } else {
-            return valueFactory.createValue(String.valueOf(fieldValue))
-        }
-    }
+            String className = node.getProperty(JcrConstants.CLASS_PROPERTY_NAME).getString()
+            Class targetClass = classLoader.loadClass(className)
+            println "Loaded target class: $targetClass.name"
+            Object target = targetClass.newInstance()
+            context.push target, node
 
-    Object getValue(Class targetClass, Value value) throws RepositoryException, IOException {
-        if(targetClass == String.class) {
-            return value.getString();
-        } else if(targetClass == Date.class) {
-            return value.getDate().getTime();
-        } else if(targetClass == Timestamp.class) {
-            return new Timestamp(value.getDate().getTimeInMillis());
-        } else if(targetClass == Calendar.class) {
-            return value.getDate();
-        } else if(targetClass == InputStream.class) {
-            return value.getStream();
-        } else if(targetClass.isArray() && targetClass.getComponentType() == byte.class) {
-            // byte array...we need to read from the stream
-            return readBytes(value.getStream());
-        } else if(targetClass == Integer.class || targetClass == int.class) {
-            return (int) value.getDouble();
-        } else if(targetClass == Long.class || targetClass == long.class) {
-            return value.getLong();
-        } else if(targetClass == Double.class || targetClass == double.class) {
-            return value.getDouble();
-        } else if(targetClass == Boolean.class || targetClass == boolean.class) {
-            return value.getBoolean();
-        } else if(targetClass.isEnum()) {
-            return Enum.valueOf(targetClass, value.getString());
-        } else {
-//            return target.convertIfNecessary(value.getString(), targetClass)
-        }
-    }
-
-    static byte[] readBytes(InputStream input) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            // Transfer bytes from in to out
-            byte[] buf = new byte[1024];
-            int len;
-            while((len = input.read(buf)) > 0) {
-                out.write(buf, 0, len);
+            context.propertyValues.findAll{k, v -> node.hasProperty(k)}.each { propertyName, propertyValue ->
+                bindFromJcrProperty(node.getProperty(propertyName), target)
             }
-        } finally {
-            input.close();
-            out.close();
+            return target
         }
-        return out.toByteArray();
     }
 
-    static Calendar getLocalizedCalendarInstance(long millis) {
-        GrailsWebRequest webRequest = (GrailsWebRequest) RequestContextHolder.getRequestAttributes();
-        Calendar calendar = webRequest != null ? Calendar.getInstance(webRequest.getLocale()) : Calendar.getInstance();
-        calendar.setTimeInMillis(millis);
-        return calendar;
+    private bindFromJcrProperty(Property jcrProperty, Object target) {
+        println "Binding $jcrProperty"
+        if(jcrProperty.getDefinition().isMultiple()) {
+            // multi-valued property
+        } else {
+            context.setObjectProperty jcrProperty.name, context.getNodePropertyValue(jcrProperty.getParent(), jcrProperty.getName(), context.getObjectPropertyType(jcrProperty.name))
+        }
     }
-
 }
