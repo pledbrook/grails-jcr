@@ -58,6 +58,7 @@ class WikiEntry {
 """)
 
         ga = new DefaultGrailsApplication(gcl.loadedClasses, gcl)
+        ApplicationHolder.application = ga
         ga.setApplicationContext appCtx
         ga.initialise()
 

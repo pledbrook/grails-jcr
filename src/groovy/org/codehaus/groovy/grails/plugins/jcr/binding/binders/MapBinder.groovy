@@ -3,6 +3,7 @@ package org.codehaus.groovy.grails.plugins.jcr.binding.binders
 import org.codehaus.groovy.grails.plugins.jcr.binding.BindingContext
 import javax.jcr.Node
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
+import org.springframework.util.ClassUtils
 
 /**
  * TODO: write javadoc
@@ -43,6 +44,8 @@ class MapBinder extends Binder {
             mapNode.addMixin(JcrConstants.MIXIN_REFERENCEABLE)
         }
 
+        mapNode.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(value.getClass()))
+
         context.configure(value)
         bindToNode(mapNode)
         context.restore()
@@ -53,5 +56,4 @@ class MapBinder extends Binder {
 
     def bindFromProperty(Node node, String propertyName) {
     }
-
 }

@@ -22,6 +22,7 @@ class BindingConfiguration {
     BeanWrapper objectWrapper
 
     def persistantProperties = [:]
+    def collectionTypes = []
 
     // default mapping configuration
     def mapping = [
@@ -55,13 +56,9 @@ class BindingConfiguration {
             }
 
             if(context.application && context.application.isDomainClass(type)) {
-                def domainClass = context.application.getDomainClass(type)
-
-                // we will use DSL configuration here in the future
-                domainClass.persistantProperties.each {GrailsDomainClassProperty prop ->
-                    persistantProperties[prop.name] = prop.type
-                }
-
+                def domainClass = context.application.getDomainClass(type.name)
+                mapping = domainClass.clazz.getGrailsJcrConfiguration()
+                persistantProperties = mapping.persistantProperties
             } else {
                 objectWrapper.getPropertyDescriptors().findAll {PropertyDescriptor pd ->
                     !disallowedProperties.contains(pd.getName())
@@ -73,10 +70,6 @@ class BindingConfiguration {
         }
 
         println "Configured $type.name - $mapping"
-    }
-
-    boolean isDomainClass() {
-        return domainClass != null
     }
 
     def propertyMissing(String name) {

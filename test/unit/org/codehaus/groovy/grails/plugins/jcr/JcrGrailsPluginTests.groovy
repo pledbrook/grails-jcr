@@ -19,7 +19,7 @@ class JcrGrailsPluginTests extends GroovyTestCase {
 
     def interceptor = new OpenSessionInViewInterceptor()
     def request = new MockHttpServletRequest()
-    def repository = null
+    Repository repository = null
     def gcl = new GroovyClassLoader()
     def appCtx = new MockApplicationContext()
     def resolver = new PathMatchingResourcePatternResolver()
@@ -61,6 +61,7 @@ class WikiEntry {
 """)
 
         ga = new DefaultGrailsApplication(gcl.loadedClasses, gcl)
+        ApplicationHolder.application = ga
         ga.setApplicationContext appCtx
         ga.initialise()
 
@@ -102,6 +103,14 @@ class WikiEntry {
         assertEquals "wiki:WikiEntry", wikiEntryClass.getRepositoryName()
     }
 
+    void testConfiguration() {
+        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
+
+        def config = wikiEntryClass.getGrailsJcrConfiguration()
+        assertNotNull config
+        assertEquals "wiki:", config.namespace
+    }
+
     void testFindAll() {
         println "Starting a test"
         def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
@@ -126,6 +135,9 @@ class WikiEntry {
         wikiEntry3.save()
 
         println "Saved three entries: ${wikiEntry1.UUID}, ${wikiEntry2.UUID}, ${wikiEntry3.UUID}"
+
+        def session = repository.login(new SimpleCredentials("Sergey Nebolsin", "passwd".toCharArray()));
+        session.exportDocumentView("/", System.out, false, false)
 
         def results = wikiEntryClass.findAll("//wiki:WikiEntry[@wiki:title = 'fred']")
 
@@ -239,7 +251,7 @@ class WikiEntry {
         def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
 
         assertEquals "wiki", wikiEntryClass.getNamespacePrefix()
-        assertEquals "http://grails.org/wiki/0.1", wikiEntryClass.getNamespaceURI()
+        assertEquals "http://grails.org/wiki/", wikiEntryClass.getNamespaceURI()
 
     }
 

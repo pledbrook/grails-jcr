@@ -32,7 +32,8 @@ import org.apache.log4j.Logger
 import org.springmodules.jcr.support.OpenSessionInViewInterceptor
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.transaction.support.TransactionCallback
-
+import org.codehaus.groovy.grails.plugins.jcr.JcrConfigurator
+import org.codehaus.groovy.grails.commons.GrailsClassUtils as GCU
 /**
  * A plugin for the Grails framework (http://grails.org) that provides an ORM layer onto the
  * Java Content Repository (JCR) specification.
@@ -105,14 +106,19 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
     private addCommonMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
+        def configuration = JcrConfigurator.readConfiguration(dc)
+
+        mc.'static'.getGrailsJcrConfiguration = { ->
+            configuration
+        }
+
         /**
          * bind(Object, Node) method. Binds the properties of the specified Node onto the properties of the specified
          * Object performing necessary type conversion and so forth
          */
         mc.'static'.bind = {Object dest, Node sourceNode ->
-            def binder = NodeBinder.createNodeBinder(dest, dest.getClass().getName(), getNamespacePrefix())
-            binder.bind(sourceNode)
-            dest
+            def binder = new ExperimentalNodeBinder(application.classLoader)
+            binder.bindFromNode(sourceNode, dc.clazz)
         }
 
         /**
@@ -121,9 +127,8 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         mc.'static'.getNode = {String uuid ->
             def result = null
             if(uuid) {
-                def queryResult = executeQuery("//${getRepositoryName()}[jcr:uuid='$uuid']")
-                if(queryResult.nodes.hasNext()) {
-                    result = queryResult.nodes.nextNode()
+                withSession { Session session ->
+                    result = session.getNodeByUUID(uuid)
                 }
             }
             result
@@ -153,7 +158,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
 
         def ns = dc.getPropertyValue('namespace')
         if(ns instanceof String) {
-            ns = ns ? [(ns): "http://grails.org/$ns/$version".toString()] : [(ns): "http://grails.org/gorm/$version".toString()]
+            ns = ns ? [(ns): "http://grails.org/$ns/".toString()] : [(ns): "http://grails.org/gorm/".toString()]
         }
 
         if(ns instanceof Map) {
@@ -199,11 +204,9 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         mc.'static'.create = {Node node ->
             def result = null
             if(node) {
-                def pfx = getNamespacePrefix()
-                result = dc.newInstance()
+                def binder = new ExperimentalNodeBinder(application.classLoader)
+                result = binder.bindFromNode(node, dc.clazz)
                 result.UUID = node.UUID
-                def binder = NodeBinder.createNodeBinder(result, result.getClass().getName(), pfx)
-                binder.bind(node)
             }
             // result
             result
@@ -242,9 +245,9 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
          * save() dynamic method. Persists an instance to the JCR repository
          */
         mc.save = {->
+            def obj = delegate
             withSession {session ->
                 def node = null
-                def obj = delegate
                 // When the node has a UUID get the existing node otherwise add a new versionable node
                 boolean isExisting = false
                 if(obj.UUID) {
@@ -259,15 +262,8 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
                     node.addMixin("mix:lockable")
                 }
 
-                def binder = NodeBinder.createNodeBinder(node, getRepositoryName(), getNamespacePrefix())
-                def values = [:]
-                dc.persistantProperties.findAll {p ->
-                    !p.isAssociation() && p.name != 'UUID'
-                }.each {
-                    values[it.name] = obj[it.name]
-                }
-
-                binder.bind(values)
+                def binder = new ExperimentalNodeBinder(application.classLoader)
+                binder.bindToNode(node, obj)
                 session.save()
                 if(isExisting) {
                     node.checkin()
