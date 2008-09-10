@@ -2,16 +2,9 @@ package org.codehaus.groovy.grails.plugins.jcr.binding
 
 import javax.jcr.Node
 import javax.jcr.Value
-import javax.jcr.ValueFactory
-import java.sql.Timestamp
-import javax.jcr.RepositoryException
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsWebRequest
-import org.springframework.web.context.request.RequestContextHolder
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import org.springframework.util.ClassUtils
-import org.codehaus.groovy.grails.commons.ApplicationHolder
 import javax.jcr.Property
-import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 
 /**
  * Universal binder for binding Object (possibly Grails Domain class) to JCR Node
@@ -34,6 +27,15 @@ class ExperimentalNodeBinder {
         bindToJcrNode(node, source)
     }
 
+    public Object bindFromNode(Node node) {
+        bindFromJcrNode(node)
+    }
+
+
+    // ==========================================
+    //     Object -> Node
+    // ==========================================
+
     private bindToJcrNode(Node node, Object source) {
         println "Binding $source to node: ${node.getPath()}"
         context.push source, node
@@ -54,27 +56,6 @@ class ExperimentalNodeBinder {
         context.pop
     }
 
-    private bindCollectionToJcrNode(Node collectionNode, Collection source) {
-        collectionNode.getNodes().each { Node value -> value.remove() }
-
-        source.eachWithIndex { value, index ->
-            Node valueNode = collectionNode.addNode(index.toString())
-            bindToJcrProperty(valueNode, JcrConstants.COLLECTION_VALUE_PROPERTY_NAME, value)
-        }
-    }
-
-    private bindMapToJcrNode(Node mapNode, Map source) {
-        mapNode.getNodes().each { Node value ->
-            if(!source.containsKey(value.getName())) value.remove()
-        }
-
-        source.each { key, value ->
-            Node valueNode = mapNode.addNode(key)
-            bindToJcrProperty(valueNode, JcrConstants.MAP_KEY_PROPERTY_NAME, key)
-            bindToJcrProperty(valueNode, JcrConstants.MAP_VALUE_PROPERTY_NAME, value)
-        }
-    }
-
     private bindToJcrProperty(Node node, String jcrPropertyName, Object value) {
         def type = value.getClass()
         if(Collection.isAssignableFrom(type)) {
@@ -87,6 +68,11 @@ class ExperimentalNodeBinder {
             context.setNodePropertyValue(node, jcrPropertyName, value)
         }
     }
+
+
+    // ==========================================
+    //     Collection -> Node
+    // ==========================================
 
     private bindCollectionToJcrProperty(Node node, String jcrPropertyName, Collection values) {
         def result = []
@@ -117,6 +103,19 @@ class ExperimentalNodeBinder {
         }
     }
 
+    private bindCollectionToJcrNode(Node collectionNode, Collection source) {
+        collectionNode.getNodes().each { Node value -> value.remove() }
+
+        source.eachWithIndex { value, index ->
+            Node valueNode = collectionNode.addNode(index.toString())
+            bindToJcrProperty(valueNode, JcrConstants.COLLECTION_VALUE_PROPERTY_NAME, value)
+        }
+    }
+
+    // ==========================================
+    //     Map -> Node
+    // ==========================================
+
     private bindMapToJcrProperty(Node node, String jcrPropertyName, Map value) {
         Node mapNode
         if(node.hasNode(jcrPropertyName)) {
@@ -131,10 +130,26 @@ class ExperimentalNodeBinder {
         node.setProperty(jcrPropertyName, mapNode)
     }
 
+    private bindMapToJcrNode(Node mapNode, Map source) {
+        mapNode.getNodes().each { Node value ->
+            if(!source.containsKey(value.getName())) value.remove()
+        }
+
+        source.each { key, value ->
+            Node valueNode = mapNode.addNode(key)
+            bindToJcrProperty(valueNode, JcrConstants.MAP_KEY_PROPERTY_NAME, key)
+            bindToJcrProperty(valueNode, JcrConstants.MAP_VALUE_PROPERTY_NAME, value)
+        }
+    }
 
 
 
-    def bindFrom(Node node) {
+    // ==========================================
+    //     Node -> Object
+    // ==========================================
+
+
+    private Object bindFromJcrNode(Node node) {
         if(!node.hasProperty(JcrConstants.CLASS_PROPERTY_NAME)) {
             throw new GrailsBindingException("Node doesn't contain class information, cannot bind from this node")
         } else {

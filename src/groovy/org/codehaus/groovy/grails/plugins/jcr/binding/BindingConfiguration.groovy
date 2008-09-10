@@ -15,7 +15,7 @@ import javax.jcr.Value
  * @author Sergey Nebolsin (nebolsin@gmail.com)
  */
 class BindingConfiguration {
-    private static final disallowedProperties = ["metaClass", "properties"]
+    private static final disallowedProperties = ["metaClass", "properties", "class"]
 
     BindingContext context
     Object object

@@ -83,6 +83,8 @@ class TestClass {
         ExperimentalNodeBinder binder = new ExperimentalNodeBinder()
         binder.bindToNode(testNode, target)
 
+        testNode.getSession().exportSystemView("/testNode", System.out, false, false)
+
         assertEquals "foo", testNode.getProperty("string").getString()
         assertTrue testNode.getProperty("booleanObject").getBoolean()
         assertFalse testNode.getProperty("booleanPrimitive").getBoolean()
@@ -103,6 +105,8 @@ class TestClass {
 
         def binder = new ExperimentalNodeBinder()
         binder.bindToNode(testNode, target)
+
+        testNode.getSession().exportSystemView("/testNode", System.out, false, false)
 
         assertTrue testNode.hasNode("map")
         def mapNode = testNode.getNode("map")
@@ -157,6 +161,8 @@ class TestClass {
         assertEquals "http://grails.org", valueNode.getProperty("grails:collectionValue").getString()
     }
 
+
+
     void testSimpleBindFromNode() {
 
         def cal = new GregorianCalendar()
@@ -175,7 +181,7 @@ class TestClass {
         testNode.setProperty("uri", "http://grails.org")
 
         def binder = new ExperimentalNodeBinder(gcl)
-        def target = binder.bindFrom(testNode)
+        def target = binder.bindFromNode(testNode)
 
         assertEquals "foo", target.string
         assertTrue target.booleanObject
@@ -190,4 +196,11 @@ class TestClass {
         assertEquals new URI("http://grails.org"), target.uri
     }
 
+    void testBindFromInvalidNode() {
+        testNode.setProperty("string", "foo");
+        def binder = new ExperimentalNodeBinder(gcl)
+        shouldFail(GrailsBindingException) {
+            binder.bindFromNode(testNode)
+        }
+    }
 }
