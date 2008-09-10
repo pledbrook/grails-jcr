@@ -26,10 +26,10 @@ class ExperimentalNodeBinder {
         context.restore()
     }
 
-    public Object bindFromNode(Node node, Object target) {
-        def binder = context.resolveBinder(target.getClass())
-        context.configure target
+    public Object bindFromNode(Node node, Class requiredClass) {
+        def binder = context.resolveBinder(requiredClass)
+        context.configure(binder.checkAndInstantiate(node, requiredClass))
         binder.bindFromNode(node)
-        context.restore()
+        return context.restore()
     }
 }

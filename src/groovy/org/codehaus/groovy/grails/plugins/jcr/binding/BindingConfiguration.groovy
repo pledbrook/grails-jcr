@@ -123,4 +123,12 @@ class BindingConfiguration {
     String resolveJcrPropertyName(String propertyName) {
         return addNamespaceIfNecessaty(propertyName)
     }
+
+    Object convertIfNecessary(Object value, Class requiredType) {
+        objectWrapper.convertIfNecessary(value, requiredType)
+    }
+
+    Object getOptimalValue(Value value, Class requiredType) {
+        return objectWrapper.convertIfNecessary(JcrHelper.getOptimalValue(value, requiredType), requiredType)
+    }
 }

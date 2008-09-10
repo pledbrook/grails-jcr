@@ -34,7 +34,8 @@ class BindingContext {
     }
 
     def restore() {
-        configurations.removeFirst()
+        def config = configurations.removeFirst()
+        config.object
     }
 
     def propertyMissing(String name) {

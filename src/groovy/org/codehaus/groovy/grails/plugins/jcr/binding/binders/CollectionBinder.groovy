@@ -5,6 +5,8 @@ import org.codehaus.groovy.grails.plugins.jcr.binding.JcrHelper
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import javax.jcr.Value
 import javax.jcr.Node
+import org.codehaus.groovy.grails.plugins.jcr.binding.GrailsBindingException
+import org.springframework.util.ClassUtils
 
 /**
  * TODO: write javadoc
@@ -46,6 +48,8 @@ class CollectionBinder extends Binder {
 
         if(!expandCollection) {
             node.setProperty(jcrPropertyName, result as Value[])
+            node.setProperty(constructTypePropertyName(propertyName), ClassUtils.getQualifiedName(values.getClass()))
+            node.setProperty(constructValueTypePropertyName(propertyName), ClassUtils.getQualifiedName(type))
         } else {
             Node collectionNode
             if(node.hasNode(jcrPropertyName)) {
@@ -63,8 +67,32 @@ class CollectionBinder extends Binder {
 
 
     def bindFromNode(Node node) {
+        node.getNodes().each { Node value ->
+
+        }
     }
 
     def bindFromProperty(Node node, String propertyName) {
+        def jcrPropertyName = context.resolveJcrPropertyName(propertyName)
+        try {
+            Value[] values = node.getProperty(jcrPropertyName).getValues()
+            Class collectionType = context.classLoader.loadClass(node.getProperty(constructTypePropertyName(propertyName)).getString())
+            Class valueType = context.classLoader.loadClass(node.getProperty(constructValueTypePropertyName(propertyName)).getString())
+            def collection = collectionType.newInstance()
+            values.each { value ->
+                collection << context.getOptimalValue(value, valueType)
+            }
+            context.setObjectProperty(propertyName, collection)
+        } catch (javax.jcr.ValueFormatException vfe) {
+            throw new GrailsBindingException("Property '$propertyName' of node $node.path is single-valued, cannot be binded to collection", vfe)
+        }
+    }
+
+    def constructTypePropertyName(String propertyName) {
+        JcrConstants.GRAILS_NAMESPACE_KEY + ":${propertyName}Type"
+    }
+
+    def constructValueTypePropertyName(String propertyName) {
+        JcrConstants.GRAILS_NAMESPACE_KEY + ":${propertyName}ValueType"
     }
 }

@@ -130,6 +130,8 @@ class TestClass {
         def binder = new ExperimentalNodeBinder()
         binder.bindToNode(testNode, target)
 
+        assertEquals "java.util.ArrayList", testNode.getProperty("grails:listType").getString()
+        assertEquals "java.lang.String", testNode.getProperty("grails:listValueType").getString()
         Value[] values = testNode.getProperty("list").getValues()
         assertEquals "aaa", values[0].getString()
         assertEquals "bbb", values[1].getString()
@@ -180,9 +182,8 @@ class TestClass {
         testNode.setProperty("url", "http://grails.org")
         testNode.setProperty("uri", "http://grails.org")
 
-        def target = testDomainClass.newInstance()
         def binder = new ExperimentalNodeBinder(gcl)
-        binder.bindFromNode(testNode, target)
+        def target = binder.bindFromNode(testNode, testDomainClass.clazz)
 
         assertEquals "foo", target.string
         assertTrue target.booleanObject
@@ -200,18 +201,37 @@ class TestClass {
     void testBindFromInvalidNode() {
         testNode.setProperty("string", "foo");
         def binder = new ExperimentalNodeBinder(gcl)
-        def target = testDomainClass.newInstance()
 
         // no class information for node
         shouldFail(GrailsBindingException) {
-            binder.bindFromNode(testNode, target)
+            binder.bindFromNode(testNode, testDomainClass.clazz)
         }
 
         testNode.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(Double))
 
         // invalid class information for node, trying to bind Double node to TestClass
         shouldFail(GrailsBindingException) {
-            binder.bindFromNode(testNode, target)
+            binder.bindFromNode(testNode, testDomainClass.clazz)
         }
+    }
+
+    void testBindListFromNode() {
+
+        testNode.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(testDomainClass.clazz))
+        testNode.setProperty("list", [
+                testNode.getSession().getValueFactory().createValue("aaa"),
+                testNode.getSession().getValueFactory().createValue("bbb"),
+                testNode.getSession().getValueFactory().createValue("ccc")
+        ] as Value[])
+        testNode.setProperty("grails:listType", "java.util.ArrayList")
+        testNode.setProperty("grails:listValueType", "java.lang.String")
+
+        def binder = new ExperimentalNodeBinder(gcl)
+        def target = binder.bindFromNode(testNode, testDomainClass.clazz)
+
+        assertEquals 3, target.list.size()
+        assertEquals "aaa", target.list[0]
+        assertEquals "bbb", target.list[1]
+        assertEquals "ccc", target.list[2]
     }
 }

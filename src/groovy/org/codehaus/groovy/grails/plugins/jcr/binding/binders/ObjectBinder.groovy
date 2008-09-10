@@ -40,20 +40,16 @@ class ObjectBinder extends Binder {
     }
 
     def bindFromNode(Node node) {
-        if(!node.hasProperty(JcrConstants.CLASS_PROPERTY_NAME)) {
-            throw new GrailsBindingException("Node doesn't contain class information, cannot bind from this node")
-        } else {
-            String className = node.getProperty(JcrConstants.CLASS_PROPERTY_NAME).getString()
-            Class targetClass = context.classLoader.loadClass(className)
-            println "Loaded target class: $targetClass.name"
-            if(targetClass != context.object.getClass()) {
-                throw new GrailsBindingException("Node with $targetClass.name class cannot be binded to ${context.object.getClass()} class")
-            }
+        context.persistantProperties.findAll{k, v -> node.hasProperty(k)}.each { propertyName, propertyType ->
+            def binder = context.resolveBinder(propertyType)
+            binder.bindFromProperty(node, propertyName)
+        }
 
-            context.persistantProperties.findAll{k, v -> node.hasProperty(k)}.each { propertyName, propertyType ->
-                def binder = context.resolveBinder(propertyType)
-                binder.bindFromProperty(node, propertyName)
-            }
+        context.persistantProperties.findAll{k, v -> node.hasNode(k)}.each { propertyName, propertyType ->
+            def binder = context.resolveBinder(propertyType)
+            def childNode = node.getNode(propertyName)
+            context.configure(binder.checkAndInstantiate(childNode, propertyType))
+            binder.bindFromNode(childNode)
         }
     }
 
