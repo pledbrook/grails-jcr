@@ -3,6 +3,8 @@ package org.codehaus.groovy.grails.plugins.jcr.binding
 import javax.jcr.Node
 import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.codehaus.groovy.grails.commons.ApplicationHolder
+import org.codehaus.groovy.grails.plugins.jcr.binding.binders.BinderFactory
+import org.codehaus.groovy.grails.plugins.jcr.binding.binders.Binder
 
 /**
  * TODO: write javadoc
@@ -14,7 +16,8 @@ class BindingContext {
     private nodesToObjectsCache = [:]
 
     GrailsApplication application = ApplicationHolder.application
-
+    BinderFactory factory = new BinderFactory(this)
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader()
 
     LinkedList configurations = new LinkedList()
 
@@ -22,26 +25,16 @@ class BindingContext {
         configurations.getFirst()
     }
     
-    def push(BindingConfiguration conf) {
-        configurations.addFirst conf
-        objectsToNodesCache[conf.object] = conf.item
-        nodesToObjectsCache[conf.item] = conf.object
+    def configure(BindingConfiguration conf) {
+        configurations.addFirst(conf)
     }
 
-    def push(Object object, Node node) {
-        push(new BindingConfiguration(object, node, this))
+    def configure(Object object) {
+        configure(new BindingConfiguration(object, this))
     }
 
-    def pop() {
-        configurations.removeFirst
-    }
-
-    Node getNode(Object object) {
-        objectsToNodesCache[object]
-    }
-
-    Object getObject(Node node) {
-        nodesToObjectsCache[node]
+    def restore() {
+        configurations.removeFirst()
     }
 
     def propertyMissing(String name) {
@@ -50,5 +43,11 @@ class BindingContext {
 
     def methodMissing(String name, args) {
         getConfig().invokeMethod(name, args)
+    }
+
+    Binder resolveBinder(Class type) {
+        def result = factory.resolveBinder(type)
+        // println "Resolving $type to $result"
+        return result
     }
 }

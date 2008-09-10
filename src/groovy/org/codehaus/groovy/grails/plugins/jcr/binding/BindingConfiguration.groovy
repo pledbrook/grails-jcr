@@ -20,23 +20,19 @@ class BindingConfiguration {
     BindingContext context
     Object object
     BeanWrapper objectWrapper
-    Node node
-    GrailsDomainClass domainClass
-    def propertyValues = [:]
-    boolean collection
-    boolean map
+
+    def persistantProperties = [:]
 
     // default mapping configuration
     def mapping = [
             namespace: ''
     ]
 
-    public BindingConfiguration(Object object, Node node, BindingContext context) {
+    public BindingConfiguration(Object object, BindingContext context) {
         this.object = object
         if(object != null) {
             objectWrapper = PropertyAccessorFactory.forBeanPropertyAccess(object)
         }
-        this.node = node
         this.context = context
         configure()
     }
@@ -48,12 +44,9 @@ class BindingConfiguration {
         println "Configuring $type.name - $object"
 
         if(Collection.isAssignableFrom(type)) {
-            collection = true
         } else if(type.isArray()) {
-            collection = true
             object = object.toList()
         } else if(Map.isAssignableFrom(type)) {
-            map = true
         } else {
             // set namespace if configured in class
             if(objectWrapper.isReadableProperty(JcrConstants.NAMESPACE_PROPERTY_NAME)) {
@@ -62,18 +55,18 @@ class BindingConfiguration {
             }
 
             if(context.application && context.application.isDomainClass(type)) {
-                domainClass = context.application.getDomainClass(type)
+                def domainClass = context.application.getDomainClass(type)
 
                 // we will use DSL configuration here in the future
                 domainClass.persistantProperties.each {GrailsDomainClassProperty prop ->
-                    propertyValues[prop.name] = object."$prop.name"
+                    persistantProperties[prop.name] = prop.type
                 }
 
             } else {
                 objectWrapper.getPropertyDescriptors().findAll {PropertyDescriptor pd ->
                     !disallowedProperties.contains(pd.getName())
                 }.each {PropertyDescriptor pd ->
-                    propertyValues[pd.getName()] = objectWrapper.getPropertyValue(pd.getName())
+                    persistantProperties[pd.getName()] = pd.getPropertyType()
                 }
             }
 
@@ -103,13 +96,15 @@ class BindingConfiguration {
     }
 
     Class getObjectPropertyType(String propertyName) {
-        String name = removeNamespaceIfNecessary(propertyName)
-        return objectWrapper.getPropertyType(name)
+        return objectWrapper.getPropertyType(propertyName)
+    }
+
+    Object getObjectPropertyValue(String propertyName) {
+        return objectWrapper.getPropertyValue(propertyName)
     }
 
     void setObjectProperty(String propertyName, Object value) {
-        String name = removeNamespaceIfNecessary(propertyName)
-        objectWrapper.setPropertyValue name, value
+        objectWrapper.setPropertyValue propertyName, value
     }
 
     String addNamespaceIfNecessaty(String name) {
@@ -125,7 +120,7 @@ class BindingConfiguration {
         return propertyName
     }
 
-    Object convertIfNecessary(Object value, Class targetClass) {
-        return objectWrapper.convertIfNecessary(value, targetClass)
+    String resolveJcrPropertyName(String propertyName) {
+        return addNamespaceIfNecessaty(propertyName)
     }
 }

@@ -83,7 +83,7 @@ class TestClass {
         ExperimentalNodeBinder binder = new ExperimentalNodeBinder()
         binder.bindToNode(testNode, target)
 
-        testNode.getSession().exportSystemView("/testNode", System.out, false, false)
+        //testNode.getSession().exportSystemView("/testNode", System.out, false, false)
 
         assertEquals "foo", testNode.getProperty("string").getString()
         assertTrue testNode.getProperty("booleanObject").getBoolean()
@@ -180,8 +180,9 @@ class TestClass {
         testNode.setProperty("url", "http://grails.org")
         testNode.setProperty("uri", "http://grails.org")
 
+        def target = testDomainClass.newInstance()
         def binder = new ExperimentalNodeBinder(gcl)
-        def target = binder.bindFromNode(testNode)
+        binder.bindFromNode(testNode, target)
 
         assertEquals "foo", target.string
         assertTrue target.booleanObject
@@ -199,8 +200,18 @@ class TestClass {
     void testBindFromInvalidNode() {
         testNode.setProperty("string", "foo");
         def binder = new ExperimentalNodeBinder(gcl)
+        def target = testDomainClass.newInstance()
+
+        // no class information for node
         shouldFail(GrailsBindingException) {
-            binder.bindFromNode(testNode)
+            binder.bindFromNode(testNode, target)
+        }
+
+        testNode.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(Double))
+
+        // invalid class information for node, trying to bind Double node to TestClass
+        shouldFail(GrailsBindingException) {
+            binder.bindFromNode(testNode, target)
         }
     }
 }
