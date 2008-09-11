@@ -81,7 +81,7 @@ class TestClass {
         target.url = new URL("http://grails.org")
         target.uri = new URI("http://grails.org")
 
-        ExperimentalNodeBinder binder = new ExperimentalNodeBinder()
+        ExperimentalNodeBinder binder = new ExperimentalNodeBinder(gcl)
         binder.bindToNode(testNode, target)
 
         assertEquals "foo", testNode.getProperty("string").getString()
@@ -102,7 +102,7 @@ class TestClass {
 
         target.map = [aaa: "bbb", bbb: 123L]
 
-        def binder = new ExperimentalNodeBinder()
+        def binder = new ExperimentalNodeBinder(gcl)
         binder.bindToNode(testNode, target)
 
         assertTrue testNode.hasNode("map")
@@ -124,7 +124,7 @@ class TestClass {
 
         target.list = ["aaa", "bbb"]
 
-        def binder = new ExperimentalNodeBinder()
+        def binder = new ExperimentalNodeBinder(gcl)
         binder.bindToNode(testNode, target)
 
         assertEquals "java.util.ArrayList", testNode.getProperty("grails:listType").getString()
@@ -139,7 +139,7 @@ class TestClass {
 
         target.list = ["aaa", 123L, new URI("http://grails.org")]
 
-        def binder = new ExperimentalNodeBinder()
+        def binder = new ExperimentalNodeBinder(gcl)
         binder.bindToNode(testNode, target)
 
         assertTrue testNode.hasNode("list")

@@ -67,9 +67,6 @@ class Book {
         mc.'static'.getGrailsJcrMapping = { ->
             bookConf
         }
-
-        println bookClass.grailsJcrMapping
-        println authorClass.grailsJcrMapping
     }
 
     void tearDown() {
@@ -80,6 +77,7 @@ class Book {
             node.remove()
         }
         session.logout()
+        ExpandoMetaClass.disableGlobally()
     }
 
     void testUnidirectionalManyToOne() {

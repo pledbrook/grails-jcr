@@ -60,7 +60,6 @@ class ObjectBinder extends Binder {
     }
 
     def bindFromNode(Node node) {
-        context.object.UUID = node.UUID
         context.persistantProperties.findAll{k, v -> node.hasProperty(context.resolveJcrPropertyName(k))}.each { propertyName, propertyType ->
             def binder = context.resolveBinder(propertyType)
             binder.bindFromProperty(node, propertyName)

@@ -88,6 +88,7 @@ class WikiEntry {
         }
         interceptor.afterCompletion(request, null, null, null)
         repository.shutdown()
+        ApplicationHolder.application = null
         ExpandoMetaClass.disableGlobally()
     }
 
@@ -106,7 +107,7 @@ class WikiEntry {
     void testConfiguration() {
         def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
 
-        def config = wikiEntryClass.getGrailsJcrConfiguration()
+        def config = wikiEntryClass.getGrailsJcrMapping()
         assertNotNull config
         assertEquals "wiki:", config.namespace
     }

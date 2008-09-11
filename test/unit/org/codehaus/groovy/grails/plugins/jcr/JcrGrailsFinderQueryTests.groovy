@@ -85,6 +85,7 @@ class WikiEntry {
         }
         interceptor.afterCompletion(request, null, null, null)
         repository.shutdown()
+        ApplicationHolder.application = null
         ExpandoMetaClass.disableGlobally()
     }
 
