@@ -20,6 +20,7 @@ class ExperimentalNodeBinder {
     }
 
     public void bindToNode(Node node, Object source) {
+        context.session = node.session
         def binder = context.resolveBinder(source.getClass())
         context.configure source
         binder.bindToNode(node)
@@ -27,6 +28,7 @@ class ExperimentalNodeBinder {
     }
 
     public Object bindFromNode(Node node, Class requiredClass) {
+        context.session = node.session
         def binder = context.resolveBinder(requiredClass)
         context.configure(binder.checkAndInstantiate(node, requiredClass))
         binder.bindFromNode(node)

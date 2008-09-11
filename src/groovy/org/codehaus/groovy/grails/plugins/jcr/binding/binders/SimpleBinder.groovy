@@ -6,7 +6,6 @@ import org.codehaus.groovy.grails.plugins.jcr.binding.BindingContext
 import javax.jcr.Property
 import javax.jcr.Node
 import org.codehaus.groovy.grails.plugins.jcr.binding.GrailsBindingException
-import org.codehaus.groovy.grails.plugins.jcr.binding.JcrHelper
 import javax.jcr.Value
 
 /**
@@ -41,7 +40,7 @@ class SimpleBinder extends Binder {
     }
 
     def bindToProperty(Node node, String propertyName, value) {
-        node.setProperty(context.resolveJcrPropertyName(propertyName), JcrHelper.createValue(value, node.getSession().getValueFactory()))
+        context.setNodePropertyValue(node, context.resolveJcrPropertyName(propertyName), value)
     }
 
     def bindFromNode(Node node) {
@@ -51,6 +50,6 @@ class SimpleBinder extends Binder {
     def bindFromProperty(Node node, String propertyName) {
         Value value = node.getProperty(context.resolveJcrPropertyName(propertyName)).getValue()
         Class requiredType = context.getObjectPropertyType(propertyName)
-        context.setObjectProperty propertyName, JcrHelper.getOptimalValue(value, requiredType)
+        context.setObjectProperty propertyName, context.convertToJava(value, requiredType)
     }
 }

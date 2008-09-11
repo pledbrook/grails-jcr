@@ -1,12 +1,11 @@
 package org.codehaus.groovy.grails.plugins.jcr.binding.binders
 
 import org.codehaus.groovy.grails.plugins.jcr.binding.BindingContext
-import org.codehaus.groovy.grails.plugins.jcr.binding.JcrHelper
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import javax.jcr.Value
 import javax.jcr.Node
-import org.codehaus.groovy.grails.plugins.jcr.binding.GrailsBindingException
 import org.springframework.util.ClassUtils
+import javax.jcr.Property
 
 /**
  * TODO: write javadoc
@@ -43,7 +42,7 @@ class CollectionBinder extends Binder {
             } else {
                 if(type != value.getClass()) expandCollection = true
             }
-            result << JcrHelper.createValue(value, node.getSession().getValueFactory())
+            result << context.convertToJcr(value)
         }
 
         if(!expandCollection) {
@@ -74,18 +73,20 @@ class CollectionBinder extends Binder {
 
     def bindFromProperty(Node node, String propertyName) {
         def jcrPropertyName = context.resolveJcrPropertyName(propertyName)
-        try {
-            Value[] values = node.getProperty(jcrPropertyName).getValues()
-            Class collectionType = context.classLoader.loadClass(node.getProperty(constructTypePropertyName(propertyName)).getString())
-            Class valueType = context.classLoader.loadClass(node.getProperty(constructValueTypePropertyName(propertyName)).getString())
-            def collection = collectionType.newInstance()
-            values.each { value ->
-                collection << context.getOptimalValue(value, valueType)
-            }
-            context.setObjectProperty(propertyName, collection)
-        } catch (javax.jcr.ValueFormatException vfe) {
-            throw new GrailsBindingException("Property '$propertyName' of node $node.path is single-valued, cannot be binded to collection", vfe)
+        Property property = node.getProperty(jcrPropertyName)
+        def values = []
+        if(property.getDefinition().isMultiple()) {
+            values = property.getValues().toList()
+        } else {
+            values << property.getValue()
         }
+        Class collectionType = context.classLoader.loadClass(node.getProperty(constructTypePropertyName(propertyName)).getString())
+        Class valueType = context.classLoader.loadClass(node.getProperty(constructValueTypePropertyName(propertyName)).getString())
+        def collection = collectionType.newInstance()
+        values.each { value ->
+            collection << context.convertToJava(value, valueType)
+        }
+        context.setObjectProperty(propertyName, collection)
     }
 
     def constructTypePropertyName(String propertyName) {

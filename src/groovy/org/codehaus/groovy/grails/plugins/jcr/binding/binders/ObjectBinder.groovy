@@ -36,10 +36,31 @@ class ObjectBinder extends Binder {
     }
 
     def bindToProperty(Node node, String propertyName, value) {
-        throw new GrailsBindingException("Binding complex objects to properties is not supported")
+        println "Binding $value to property $propertyName"
+        def referenceClass = value.getClass()
+        if(referenceClass.metaClass.hasProperty(null, 'grailsJcrMapping')) {
+            def mapping = referenceClass.getGrailsJcrMapping()
+            Node referenceNode
+            if(value.UUID) {
+                // already saved object
+                referenceNode = node.getSession().getNodeByUUID(value.UUID)
+            } else {
+                referenceNode = node.getSession().getRootNode().addNode(mapping.basePath)
+                referenceNode.addMixin("mix:versionable")
+                referenceNode.addMixin("mix:lockable")
+            }
+            def binder = context.resolveBinder(referenceClass)
+            context.configure(value)
+            binder.bindToNode(referenceNode)
+            context.restore()
+            node.setProperty(context.resolveJcrPropertyName(propertyName), referenceNode)
+        } else {
+            throw new GrailsBindingException("Unsupported class ${referenceClass}: object should have static getGrailsJcrMapping() method.")
+        }
     }
 
     def bindFromNode(Node node) {
+        context.object.UUID = node.UUID
         context.persistantProperties.findAll{k, v -> node.hasProperty(context.resolveJcrPropertyName(k))}.each { propertyName, propertyType ->
             def binder = context.resolveBinder(propertyType)
             binder.bindFromProperty(node, propertyName)

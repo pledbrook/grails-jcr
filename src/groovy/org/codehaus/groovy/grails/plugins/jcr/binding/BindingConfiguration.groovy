@@ -1,10 +1,8 @@
 package org.codehaus.groovy.grails.plugins.jcr.binding
 
 import javax.jcr.Node
-import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import java.beans.PropertyDescriptor
 import org.springframework.beans.BeanWrapper
-import org.codehaus.groovy.grails.commons.GrailsDomainClassProperty
 import org.springframework.beans.PropertyAccessorFactory
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import javax.jcr.Value
@@ -20,6 +18,7 @@ class BindingConfiguration {
     BindingContext context
     Object object
     BeanWrapper objectWrapper
+    JcrValueConverter valueConverter
 
     def persistantProperties = [:]
     def collectionTypes = []
@@ -33,6 +32,7 @@ class BindingConfiguration {
         this.object = object
         if(object != null) {
             objectWrapper = PropertyAccessorFactory.forBeanPropertyAccess(object)
+            valueConverter = new JcrValueConverter(objectWrapper, context.session.valueFactory)
         }
         this.context = context
         configure()
@@ -42,12 +42,9 @@ class BindingConfiguration {
 
         def type = object.getClass()
 
-        println "Configuring $type.name - $object"
-
-        if(Collection.isAssignableFrom(type)) {
+        if(Collection.isAssignableFrom(type) || Map.isAssignableFrom(type)) {
         } else if(type.isArray()) {
             object = object.toList()
-        } else if(Map.isAssignableFrom(type)) {
         } else {
             // set namespace if configured in class
             if(objectWrapper.isReadableProperty(JcrConstants.NAMESPACE_PROPERTY_NAME)) {
@@ -57,7 +54,7 @@ class BindingConfiguration {
 
             if(context.application && context.application.isDomainClass(type)) {
                 def domainClass = context.application.getDomainClass(type.name)
-                mapping = domainClass.clazz.getGrailsJcrConfiguration()
+                mapping = domainClass.clazz.getGrailsJcrMapping()
                 persistantProperties = mapping.persistantProperties
             } else {
                 objectWrapper.getPropertyDescriptors().findAll {PropertyDescriptor pd ->
@@ -68,24 +65,27 @@ class BindingConfiguration {
             }
 
         }
-
-        println "Configured $type.name - $mapping"
     }
 
     def propertyMissing(String name) {
         mapping[name]
     }
 
+    def methodMissing(String name, args) {
+        valueConverter.invokeMethod(name, args)
+    }
+
+
     Object getNodePropertyValue(Node node, String propertyName, Class targetClass) {
         if(!node.hasProperty(propertyName)) {
             throw new GrailsBindingException("Node ${node.getPath()} doesn't have property with name $propertyName")
         }
         Value value = node.getProperty(propertyName).getValue()
-        return JcrHelper.getOptimalValue(value, targetClass)
+        return valueConverter.convertToJava(value, targetClass)
     }
 
     void setNodePropertyValue(Node node, String propertyName, Object value) {
-        node.setProperty(propertyName, JcrHelper.createValue(value, node.getSession().getValueFactory()))
+        node.setProperty(propertyName, valueConverter.convertToJcr(value))
     }
 
     Class getObjectPropertyType(String propertyName) {
@@ -115,13 +115,5 @@ class BindingConfiguration {
 
     String resolveJcrPropertyName(String propertyName) {
         return addNamespaceIfNecessaty(propertyName)
-    }
-
-    Object convertIfNecessary(Object value, Class requiredType) {
-        objectWrapper.convertIfNecessary(value, requiredType)
-    }
-
-    Object getOptimalValue(Value value, Class requiredType) {
-        return objectWrapper.convertIfNecessary(JcrHelper.getOptimalValue(value, requiredType), requiredType)
     }
 }

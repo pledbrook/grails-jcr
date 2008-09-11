@@ -12,6 +12,9 @@ import org.springframework.util.StringUtils
  */
 class JcrConfigurator {
 
+    private static final disallowedProperties = ["UUID"]
+
+
     static Map readConfiguration(GrailsDomainClass dc) {
         def application = ApplicationHolder.application
         def mapping = [:]
@@ -21,16 +24,20 @@ class JcrConfigurator {
         def persistantProperties = [:]
         def collectionTypes = [:]
         // we will use DSL configuration here in the future
-        dc.persistantProperties.each {GrailsDomainClassProperty prop ->
+        dc.persistantProperties.findAll { !disallowedProperties.contains(it.name) }.each {GrailsDomainClassProperty prop ->
             persistantProperties[prop.name] = prop.type
             if(prop.oneToMany || prop.manyToMany) {
                 collectionTypes[prop.name] = prop.referencedPropertyType
             }
         }
+
         mapping.persistantProperties = persistantProperties
         mapping.collectionTypes = collectionTypes
 
-        mapping.basePath = "/${application.metadata.'app.name'}/${mapping.namespace}${dc.fullName}"
+        def basePath = "${mapping.namespace}${dc.shortName}"
+        def applicationName = application?.metadata?.'app.name'
+        basePath = applicationName ? "$applicationName$basePath/" : basePath
+        mapping.basePath = basePath
 
         mapping
     }

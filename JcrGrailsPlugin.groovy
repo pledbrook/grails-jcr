@@ -108,7 +108,7 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
 
         def configuration = JcrConfigurator.readConfiguration(dc)
 
-        mc.'static'.getGrailsJcrConfiguration = { ->
+        mc.'static'.getGrailsJcrMapping = { ->
             configuration
         }
 

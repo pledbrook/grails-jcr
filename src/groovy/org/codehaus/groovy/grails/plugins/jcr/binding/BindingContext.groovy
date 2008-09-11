@@ -5,6 +5,7 @@ import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.codehaus.groovy.grails.commons.ApplicationHolder
 import org.codehaus.groovy.grails.plugins.jcr.binding.binders.BinderFactory
 import org.codehaus.groovy.grails.plugins.jcr.binding.binders.Binder
+import javax.jcr.Session
 
 /**
  * TODO: write javadoc
@@ -18,6 +19,7 @@ class BindingContext {
     GrailsApplication application = ApplicationHolder.application
     BinderFactory factory = new BinderFactory(this)
     ClassLoader classLoader = ClassLoader.getSystemClassLoader()
+    Session session
 
     LinkedList configurations = new LinkedList()
 

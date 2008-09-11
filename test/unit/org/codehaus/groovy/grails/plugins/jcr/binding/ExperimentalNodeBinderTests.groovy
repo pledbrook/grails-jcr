@@ -38,6 +38,7 @@ class TestClass {
     Long id
     Long version
 
+    String UUID
     String string
     Boolean booleanObject
     boolean booleanPrimitive
@@ -83,8 +84,6 @@ class TestClass {
         ExperimentalNodeBinder binder = new ExperimentalNodeBinder()
         binder.bindToNode(testNode, target)
 
-        //testNode.getSession().exportSystemView("/testNode", System.out, false, false)
-
         assertEquals "foo", testNode.getProperty("string").getString()
         assertTrue testNode.getProperty("booleanObject").getBoolean()
         assertFalse testNode.getProperty("booleanPrimitive").getBoolean()
@@ -105,8 +104,6 @@ class TestClass {
 
         def binder = new ExperimentalNodeBinder()
         binder.bindToNode(testNode, target)
-
-        testNode.getSession().exportSystemView("/testNode", System.out, false, false)
 
         assertTrue testNode.hasNode("map")
         def mapNode = testNode.getNode("map")
