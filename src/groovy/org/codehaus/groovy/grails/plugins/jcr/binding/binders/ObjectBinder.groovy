@@ -36,7 +36,6 @@ class ObjectBinder extends Binder {
     }
 
     def bindToProperty(Node node, String propertyName, value) {
-        println "Binding $value to property $propertyName"
         def referenceClass = value.getClass()
         if(referenceClass.metaClass.hasProperty(null, 'grailsJcrMapping')) {
             def mapping = referenceClass.getGrailsJcrMapping()
@@ -60,6 +59,7 @@ class ObjectBinder extends Binder {
     }
 
     def bindFromNode(Node node) {
+        context.object.UUID = node.UUID
         context.persistantProperties.findAll{k, v -> node.hasProperty(context.resolveJcrPropertyName(k))}.each { propertyName, propertyType ->
             def binder = context.resolveBinder(propertyType)
             binder.bindFromProperty(node, propertyName)
@@ -70,11 +70,23 @@ class ObjectBinder extends Binder {
             def childNode = node.getNode(propertyName)
             context.configure(binder.checkAndInstantiate(childNode, propertyType))
             binder.bindFromNode(childNode)
+            context.restore()
         }
     }
 
     def bindFromProperty(Node node, String propertyName) {
-        throw new GrailsBindingException("Binding complex objects to properties is not supported")
+        def result = null
+        def jcrPropertyName = context.resolveJcrPropertyName(propertyName)
+        if(node.hasProperty(jcrPropertyName)) {
+            Node referenceNode = node.getProperty(jcrPropertyName).getNode()
+            Class type = context.getObjectPropertyType(propertyName)
+            def binder = context.resolveBinder(type)
+            context.configure(binder.checkAndInstantiate(referenceNode, type))
+            binder.bindFromNode(referenceNode)
+            result = context.object
+            context.restore()
+        }
+        context.setObjectProperty(propertyName, result)
     }
 
 }

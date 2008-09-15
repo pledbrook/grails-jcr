@@ -11,6 +11,7 @@ import javax.jcr.NamespaceException
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
 import org.codehaus.groovy.grails.plugins.jcr.JcrConfigurator
 import javax.jcr.query.Query
+import org.springframework.util.ClassUtils
 
 /**
  * TODO: write javadoc
@@ -76,6 +77,7 @@ class Book {
         session.workspace.queryManager.createQuery("//Book", Query.XPATH).execute().nodes.each { Node node ->
             node.remove()
         }
+        session.save()
         session.logout()
         ExpandoMetaClass.disableGlobally()
     }
@@ -95,5 +97,30 @@ class Book {
         Node authorNode = node.getProperty("author").getNode()
         assertEquals "/Author", authorNode.getPath()
         assertEquals "Graeme Rocher", authorNode.getProperty("name").getString()
+    }
+
+    void testUnideirectionalManyToOneReverse() {
+        Node bookNode = session.getRootNode().addNode(bookDomainClass.clazz.getGrailsJcrMapping().basePath)
+        bookNode.addMixin 'mix:referenceable'
+        bookNode.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(bookDomainClass.clazz))
+        bookNode.setProperty('title', 'The Definitive Guide To Grails')
+
+        Node authorNode = session.getRootNode().addNode(authorDomainClass.clazz.getGrailsJcrMapping().basePath)
+        authorNode.setProperty(JcrConstants.CLASS_PROPERTY_NAME, ClassUtils.getQualifiedName(authorDomainClass.clazz))
+        authorNode.addMixin 'mix:referenceable'
+        authorNode.setProperty('name', 'Graeme Rocher')
+
+        bookNode.setProperty('author', authorNode)
+        session.save()
+
+        def binder = new ExperimentalNodeBinder(gcl)
+        def result = binder.bindFromNode(bookNode, bookDomainClass.clazz)
+
+        assertNotNull result
+        assertNotNull result.UUID
+        assertEquals 'The Definitive Guide To Grails', result.title
+        assertNotNull result.author
+        assertEquals 'Graeme Rocher', result.author.name
+
     }
 }

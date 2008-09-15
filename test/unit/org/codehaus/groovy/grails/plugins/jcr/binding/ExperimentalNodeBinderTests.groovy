@@ -58,6 +58,7 @@ class TestClass {
         testDomainClass = new DefaultGrailsDomainClass(testClass)
 
         testNode = session.getRootNode().addNode("testNode")
+        testNode.addMixin 'mix:referenceable'
     }
 
     void tearDown() {
