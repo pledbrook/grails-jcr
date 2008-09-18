@@ -71,7 +71,6 @@ class QueryOperationsTests extends AbstractJcrPluginTest {
         wikiEntry.id = 1
         wikiEntry.title = "foo"
         wikiEntry.body = "bar"
-
         wikiEntry.save()
 
         wikiEntry = domainClass.newInstance()

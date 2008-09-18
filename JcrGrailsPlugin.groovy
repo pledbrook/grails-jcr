@@ -41,6 +41,7 @@ import org.apache.jackrabbit.ocm.reflection.ReflectionUtils
 import org.apache.jackrabbit.ocm.query.Filter
 import org.apache.jackrabbit.ocm.query.Query
 import org.apache.jackrabbit.ocm.manager.impl.ObjectIterator
+import org.codehaus.groovy.grails.plugins.jcr.exceptions.GrailsRepositoryException
 
 /**
  * A plugin for the Grails framework (http://grails.org) that provides an ORM layer onto the
@@ -465,51 +466,43 @@ class JcrGrailsPlugin {
     private addLockingSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
+        mc.lock = { ->
+            lock(true)
+        }
+
         /**
          * lock(boolean) method. Attempts to obtain a lock on a Node or Object.
          * If a lock cannot be obtained null is returned
          */
         mc.lock = {boolean isSessionScoped ->
-            def lock = null
-            if(delegate.UUID) {
-                def node = getNode(delegate.UUID)
-                if(!node?.locked) {
+            withOcm { ObjectContentManager ocm ->
+                if(ocm.isLocked(delegate.path)) {
+                    return null
+                } else {
                     try {
-                        lock = node?.lock(true, isSessionScoped)
-                    } catch (LockException e) {
-                        log.debug("Lock cannot be obtained on node " + node?.path, e)
-                        e.printStackTrace()
-                        // ignore
+                        return ocm.lock(delegate.path, true, isSessionScoped)
+                    } catch (Exception e) {
+                        throw new GrailsRepositoryException("Lock cannot be obtained on node ${delegate.path}", e)
                     }
 
                 }
-
             }
-            // return the lock
-            lock
-        }
-
-        /**
-         * getLock() method. Retrieves the lock held on the current Node, otherwise returns null
-         */
-        mc.getLock = {->
-            def node = getNode(delegate.UUID)
-            try {
-                node?.getLock()
-            } catch (LockException e) {
-                log.debug("Lock cannot be obtained on node " + node?.path, e)
-                // ignore
-            }
-
         }
 
         /**
          * unlock() method. Removes the lock held on the current node, or returns null
          * */
         mc.unlock = {->
-            if(delegate.properties['UUID']) {
-                def node = getNode(delegate.UUID)
-                if(node?.locked) node.unlock()
+            withOcm { ObjectContentManager ocm ->
+                if(!ocm.isLocked(delegate.path)) {
+                    return
+                } else {
+                    try {
+                        ocm.unlock(delegate.path, null)
+                    } catch (Exception e) {
+                        throw new GrailsRepositoryException("Cannot unlock node ${delegate.path}", e)
+                    }
+                }
             }
         }
 
@@ -517,10 +510,10 @@ class JcrGrailsPlugin {
          * isLocked() method. Returns true if there is a lock on the specified object's Node
          */
         mc.isLocked = {->
-            def node = getNode(delegate.UUID)
-            node?.isLocked()
+            withOcm { ObjectContentManager ocm ->
+                ocm.isLocked(delegate.path)
+            }
         }
-
     }
 
     private addVersioningSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
