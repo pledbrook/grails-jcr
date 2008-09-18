@@ -34,6 +34,14 @@ import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.transaction.support.TransactionCallback
 import org.codehaus.groovy.grails.plugins.jcr.JcrConfigurator
 import org.codehaus.groovy.grails.commons.GrailsClassUtils as GCU
+import org.codehaus.groovy.grails.plugins.jcr.mapping.JcrMapperFactoryBean
+import org.apache.jackrabbit.ocm.manager.ObjectContentManager
+import org.apache.jackrabbit.ocm.query.QueryManager
+import org.apache.jackrabbit.ocm.reflection.ReflectionUtils
+import org.apache.jackrabbit.ocm.query.Filter
+import org.apache.jackrabbit.ocm.query.Query
+import org.apache.jackrabbit.ocm.manager.impl.ObjectIterator
+
 /**
  * A plugin for the Grails framework (http://grails.org) that provides an ORM layer onto the
  * Java Content Repository (JCR) specification.
@@ -50,7 +58,8 @@ import org.codehaus.groovy.grails.commons.GrailsClassUtils as GCU
  *        Created: Feb 9, 2007
  *        Time: 5:45:29 PM
  */
-class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.class)
+class JcrGrailsPlugin {
+    static final def log = Logger.getLogger(JcrGrailsPlugin.class)
     def version = "0.2-SNAPSHOT"
     def author = "Sergey Nebolsin"
     def authorEmail = "nebolsin@gmail.com"
@@ -67,11 +76,42 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             }
             grailsUrlHandlerMapping.interceptors << jcrOpenSessionInViewInterceptor
         }
+
+        def classes = []
+        application.domainClasses.each {GrailsDomainClass dc ->
+            if(dc.mappingStrategy == "jcr") {
+                classes << dc.clazz
+            }
+        }
+
+        ReflectionUtils.classLoader = application.classLoader
+        
+        jcrMapper(JcrMapperFactoryBean) {
+            mappedClasses = classes
+        }
+
+        jcrOcmTemplate(JcrOcmTemplate) {
+            jcrMapper = ref('jcrMapper')
+            jcrSessionFactory = ref('jcrSessionFactory')
+        }
     }
 
     def doWithApplicationContext = {ctx ->
         if(!ctx.containsBean("jcrSessionFactory")) {
             throw new GrailsConfigurationException("Grails JCR plugin cannot be used without an implementation plugin, for example Grails JackRabbit plugin")
+        }
+
+
+        // create parent nodes for all domain classes
+        application.domainClasses.each { GrailsDomainClass dc ->
+            dc.clazz.withSession { Session session ->
+                def path = dc.clazz.getDomainPath()[1..-1]
+                if(!session.getRootNode().hasNode(path)) {
+                    println "Creating base Domain Class node for class: ${dc.shortName}"
+                    session.getRootNode().addNode(path)
+                    session.save()
+                }
+            }
         }
     }
 
@@ -113,15 +153,6 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
         }
 
         /**
-         * bind(Object, Node) method. Binds the properties of the specified Node onto the properties of the specified
-         * Object performing necessary type conversion and so forth
-         */
-        mc.'static'.bind = {Object dest, Node sourceNode ->
-            def binder = new ExperimentalNodeBinder(application.classLoader)
-            binder.bindFromNode(sourceNode, dc.clazz)
-        }
-
-        /**
          * getNode(UUID) method. Retrieves a JCR Node from a JCR repository using the repository generated UUID
          */
         mc.'static'.getNode = {String uuid ->
@@ -143,13 +174,25 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             "$pfx:${dc.shortName}"
         }
 
+        mc.'static'.getDomainPath = { ->
+            "/$dc.shortName"
+        }
+
         /**
          * Generic withSession { session -> } method for working with a JCR Session instance
          */
         mc.'static'.withSession = {Closure closure ->
-            ctx.jcrTemplate.execute({Session session ->
-                closure.call(session)
-            } as JcrCallback)
+            closure.delegate = delegate
+            withOcm { ocm ->
+                closure.call(ocm.session)
+            }
+        }
+
+        mc.'static'.withOcm = {Closure closure ->
+            closure.delegate = delegate
+            ctx.jcrOcmTemplate.execute({ObjectContentManager ocm ->
+                closure.call(ocm)
+            })
         }
     }
 
@@ -197,119 +240,103 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
     private addBasicPersistenceMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
-        /**
-         * create(Node) method. Allows the creation of instances by passing a JCR Node instance as an argument
-         * Automatic type conversion and data binding occurs from node -> instance
-         */
-        mc.'static'.create = {Node node ->
-            def result = null
-            if(node) {
-                def binder = new ExperimentalNodeBinder(application.classLoader)
-                result = binder.bindFromNode(node, dc.clazz)
-                result.UUID = node.UUID
-            }
-            // result
-            result
-        }
-
-        mc.'static'.create = {->
-            dc.newInstance()
-        }
-
-        /**
-         * get(UUID) method. Retrieves an instance from a JCR repository using the repository generated UUID
-         */
-        mc.'static'.get = {param ->
-            def node
-            if(param instanceof String) {
-                node = getNode(param)
-            } else if(param instanceof Node) {
-                node = param
-            } else {
-                return null
-            }
-            create(node)
-        }
-
-        mc.'static'.delete = {->
-            withSession {session ->
-                def obj = delegate
-                if(obj.UUID) {
-                    getNode(obj.UUID)?.remove()
-                }
-                session.save()
+        mc.delete = {->
+            withOcm { ObjectContentManager ocm ->
+                ocm.remove(delegate.path)
+                ocm.save()
             }
         }
 
-        /**
-         * save() dynamic method. Persists an instance to the JCR repository
-         */
         mc.save = {->
-            def obj = delegate
-            withSession {session ->
-                def node = null
-                // When the node has a UUID get the existing node otherwise add a new versionable node
-                boolean isExisting = false
-                if(obj.UUID) {
-                    node = getNode(obj.UUID)
-                    node?.checkout()
-                    isExisting = true
+            withOcm { ObjectContentManager ocm ->
+                if(delegate.path) {
+                    ocm.checkout delegate.path
+                    ocm.update delegate
+                    ocm.save()
+                    ocm.checkin delegate.path
+                } else {
+                    // TODO: implement path creation
+                    delegate.path = "${getDomainPath()}/${delegate.id}"
+                    ocm.insert delegate
+                    ocm.save()
                 }
-                if(!node) {
-                    def root = session.rootNode
-                    node = root.addNode(getRepositoryName())
-                    node.addMixin("mix:versionable")
-                    node.addMixin("mix:lockable")
-                }
-
-                def binder = new ExperimentalNodeBinder(application.classLoader)
-                binder.bindToNode(node, obj)
-                session.save()
-                if(isExisting) {
-                    node.checkin()
-                }
-                obj.UUID = node.UUID
             }
         }
-           
+
     }
 
     private addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
         /**
-         * list() dynamic methods. Returns all instances of this class in the JCR repository
+         * Domain.get(String path) dynamic method. Returns domain object by path.
+         */
+        mc.'static'.get = {String path ->
+            withOcm { ObjectContentManager ocm ->
+                ocm.getObject(dc.clazz, path)
+            }
+        }
+
+        /**
+         * Domain.getByUUID(String uuid) dynamic method. Returns domain object by UUID.
+         */
+        mc.'static'.getByUUID = {String uuid ->
+            withOcm { ObjectContentManager ocm ->
+                ocm.getObjectByUuid(uuid)
+            }
+        }
+
+        /**
+         * Domain.list() dynamic methods. Returns all instances of this class in the JCR repository.
          */
         mc.'static'.list = {->
             list(null)
         }
 
         /**
-         * list(Map args) dynamic methods. Returns all instances of this class in the JCR repository
+         * Domain.list(Map args) dynamic methods. Returns all instances of this class in the JCR repository.
          * with respect to 'offset' and 'max' arguments in args.
          */
         mc.'static'.list = {Map args ->
+            ObjectIterator iterator = getObjectIterator()
             if(!args) args = [:]
             def offset = args.offset ? args.offset.toInteger() : 0
             def max = args.max ? args.max.toInteger() : null
-
-            def queryResult = executeQuery("//${getRepositoryName()}")
-            def nodeIterator = queryResult.nodes
             def results = []
-            if(nodeIterator.size > offset) {
+            if(iterator.size > offset) {
                 if(offset > 0) {
-                    nodeIterator.skip(offset)
+                    iterator.skip(offset)
                 }
-                max = max ? max : nodeIterator.size
+                max = max ?: iterator.size
                 def i = 0
-                for(n in nodeIterator) {
+                for(result in iterator) {
                     if(i >= max) break
-                    results << create(n)
+                    results << result
                     i++
                 }
             }
             results
         }
+
+
+        /**
+         * Domain.count() dynamic method. Returns the number of Objects in the JCR repository
+         */
+        mc.'static'.count = {->
+            def iterator = getObjectIterator()
+            iterator.size
+        }
+
+        mc.'static'.getObjectIterator = {
+            withOcm { ObjectContentManager ocm ->
+                QueryManager manager = ocm.getQueryManager()
+                Filter filter = manager.createFilter(dc.clazz)
+                filter.setScope("${getDomainPath()}//")
+                Query query = manager.createQuery(filter)
+                return ocm.getObjectIterator(query)
+            }
+        }
+
 
         /**
          * find(String query) dynamic method. Finds and returns the first result of the XPath query or null
@@ -335,17 +362,6 @@ class JcrGrailsPlugin {static final def log = Logger.getLogger(JcrGrailsPlugin.c
             result
         }
 
-        /**
-         * count() dynamic method. Returns the number of Objects in the JCR repository
-         */
-        mc.'static'.count = {->
-            def queryResult = executeQuery("//${getRepositoryName()}")
-            def result = 0
-            if(queryResult.nodes.hasNext()) {
-                result = queryResult.nodes.size
-            }
-            result
-        }
 
         mc.'static'.executeQuery = {String query ->
             executeQuery(query, Collections.EMPTY_MAP)

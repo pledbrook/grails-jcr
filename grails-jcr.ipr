@@ -275,12 +275,14 @@
       <CLASSES>
         <root url="jar://$PROJECT_DIR$/lib/jcr-1.0.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/spring-modules-jcr.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-ocm-1.5-SNAPSHOT.jar!/" />
       </CLASSES>
       <JAVADOC>
         <root url="file:///Developer/Java/jsr170-1.0/docs" />
       </JAVADOC>
       <SOURCES>
         <root url="jar:///Developer/Java/spring-modules-0.9-with-dependencies/sources/spring-modules-jcr-src.zip!/" />
+        <root url="file:///Users/nebolsin/Documents/Projects/jackrabbit/jackrabbit-ocm/src/main/java" />
       </SOURCES>
     </library>
     <library name="JackRabbit">
