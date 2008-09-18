@@ -254,13 +254,11 @@ class JcrGrailsPlugin {
                     ocm.update delegate
                     ocm.save()
                     ocm.checkin delegate.path
-                    delegate.version = ocm.getBaseVersion(delegate.path).getName()
                 } else {
                     // TODO: implement path creation
                     delegate.path = "${getDomainPath()}/${delegate.id}"
                     ocm.insert delegate
                     ocm.save()
-                    delegate.version = "0"
                 }
             }
         }
@@ -341,25 +339,30 @@ class JcrGrailsPlugin {
         /**
          * find(String query) dynamic method. Finds and returns the first result of the XPath query or null
          */
-        mc.'static'.find = {String query ->
-            def queryResult = executeQuery(query)
-            queryResult.nodes.hasNext() ? create(queryResult.nodes.iterator().next()) : null
+        mc.'static'.find = {String queryString ->
+            withOcm { ObjectContentManager ocm ->
+                QueryManager manager = ocm.getQueryManager()
+                Filter filter = manager.createFilter(dc.clazz)
+                filter.setScope("${getDomainPath()}//")
+                filter.addJCRExpression(queryString)
+                Query query = manager.createQuery(filter)
+                def iterator = ocm.getObjectIterator(query)
+                iterator.hasNext() ? iterator.next() : null
+            }
         }
 
         /**
          * findAll(String query) dynamic method. Finds and returns the results of the XPath query or an empty list
          */
-        mc.'static'.findAll = {String query ->
-            def result = []
-            if(query) {
-                def queryResult = executeQuery(query)
-                queryResult.nodes.each {n ->
-                    result << create(n)
-                }
-            } else {
-                result = list(null)
+        mc.'static'.findAll = {String queryString ->
+            withOcm { ObjectContentManager ocm ->
+                QueryManager manager = ocm.getQueryManager()
+                Filter filter = manager.createFilter(dc.clazz)
+                filter.setScope("${getDomainPath()}//")
+                filter.addJCRExpression(queryString)
+                Query query = manager.createQuery(filter)
+                ocm.getObjects(query)
             }
-            result
         }
 
 
@@ -368,16 +371,11 @@ class JcrGrailsPlugin {
         }
 
         mc.'static'.executeQuery = {String queryClause, Map args ->
-            withSession {session ->
+            withOcm { ObjectContentManager ocm ->
                 if(log.debugEnabled) log.debug "Attempting to execute query: $queryClause"
-
-                def queryManager = session.workspace.queryManager
-                def query
-                query = args?.lang == 'sql' ? queryManager.createQuery(queryClause, Query.SQL) : queryManager.createQuery(queryClause, Query.XPATH)
-                query.execute()
+                ocm.getObjects(queryClause, args?.lang == 'sql' ? javax.jcr.query.Query.SQL : javax.jcr.query.Query.XPATH)
             }
         }
-
     }
 
     private addDynamicFinderSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {

@@ -24,7 +24,7 @@ import org.testng.annotations.AfterMethod
  *
  * @author Sergey Nebolsin (nebolsin@gmail.com)
  */
-class AbstractJcrPluginTest extends GroovyTestCase {
+abstract class AbstractJcrPluginTest extends GroovyTestCase {
     protected interceptor = new OpenSessionInViewInterceptor()
     protected request = new MockHttpServletRequest()
     protected Repository repository = null
@@ -40,25 +40,7 @@ class AbstractJcrPluginTest extends GroovyTestCase {
         ExpandoMetaClass.enableGlobally()
         super.setUp()
 
-        gcl.parseClass("""\
-import org.apache.jackrabbit.ocm.mapper.impl.annotation.Field;
-import org.apache.jackrabbit.ocm.mapper.impl.annotation.Node;
-
-@Node(jcrMixinTypes="mix:referenceable, mix:versionable")
-class WikiEntry {
-   static mapWith = 'jcr'
-   static namespace = 'wiki'
-
-   @Field(id=true) Long id
-   String version
-
-   @Field(path=true) String path
-   @Field(uuid=true) String UUID
-   @Field String title
-   @Field String body
-}
-""")
-
+        registerDomainClasses()
 
         Class pluginClass = gcl.parseClass(resolver.getResource("file:JcrGrailsPlugin.groovy").inputStream)
 
@@ -96,6 +78,7 @@ class WikiEntry {
         interceptor.sessionFactory = appCtx.getBean('jcrSessionFactory')
         interceptor.preHandle(request, null, null)
 
+        init()
     }
 
     @AfterClass
@@ -105,4 +88,7 @@ class WikiEntry {
         ApplicationHolder.application = null
         ExpandoMetaClass.disableGlobally()
     }
+
+    abstract void registerDomainClasses()
+    abstract void init()
 }
