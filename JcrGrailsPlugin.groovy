@@ -15,14 +15,10 @@
  *
  */
 
-import org.springmodules.jcr.*
 import javax.jcr.*
-import javax.jcr.query.*
-import javax.jcr.lock.*
 import javax.jcr.version.*
 import org.codehaus.groovy.grails.exceptions.*
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
-import org.codehaus.groovy.grails.plugins.jcr.binding.*
 import org.codehaus.groovy.grails.plugins.jcr.metaclass.*
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.GrailsApplication
