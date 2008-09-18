@@ -11,7 +11,7 @@ import java.util.List;
  *
  * @author Sergey Nebolsin (nebolsin@gmail.com)
  */
-class MapperConfigurator {
+public class MapperConfigurator {
     static Mapper configureMapper(List<Class> classes) {
         DelegatingMapper mapper = new DelegatingMapper();
         for(Class clazz : classes) {

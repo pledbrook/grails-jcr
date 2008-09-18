@@ -296,6 +296,13 @@
       </SOURCES>
       <jarDirectory url="file:///Users/nebolsin/Documents/Projects/grails-jackrabbit/lib" recursive="false" />
     </library>
+    <library name="TestNG">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/lib/testng-5.7-jdk15.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES />
+    </library>
   </component>
   <UsedPathMacros>
     <macro name="GRAILS_HOME" />

@@ -11,7 +11,7 @@ import java.util.List;
  *
  * @author Sergey Nebolsin (nebolsin@gmail.com)
  */
-class JcrMapperFactoryBean implements FactoryBean, InitializingBean {
+public class JcrMapperFactoryBean implements FactoryBean, InitializingBean {
     List<Class> mappedClasses;
     Mapper mapper;
 

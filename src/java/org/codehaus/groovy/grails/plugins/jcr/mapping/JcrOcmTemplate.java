@@ -18,7 +18,7 @@ import groovy.lang.Closure;
  *
  * @author Sergey Nebolsin (nebolsin@gmail.com)
  */
-class JcrOcmTemplate implements InitializingBean {
+public class JcrOcmTemplate implements InitializingBean {
     private static final Logger log = Logger.getLogger(JcrOcmTemplate.class);
 
     Mapper jcrMapper;

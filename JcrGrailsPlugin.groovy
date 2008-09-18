@@ -254,19 +254,16 @@ class JcrGrailsPlugin {
                     ocm.update delegate
                     ocm.save()
                     ocm.checkin delegate.path
+                    delegate.version = ocm.getBaseVersion(delegate.path).getName()
                 } else {
                     // TODO: implement path creation
                     delegate.path = "${getDomainPath()}/${delegate.id}"
                     ocm.insert delegate
                     ocm.save()
+                    delegate.version = "0"
                 }
             }
         }
-
-    }
-
-    private addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
-        def mc = dc.metaClass
 
         /**
          * Domain.get(String path) dynamic method. Returns domain object by path.
@@ -336,7 +333,10 @@ class JcrGrailsPlugin {
                 return ocm.getObjectIterator(query)
             }
         }
+    }
 
+    private addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+        def mc = dc.metaClass
 
         /**
          * find(String query) dynamic method. Finds and returns the first result of the XPath query or null
