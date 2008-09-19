@@ -1,6 +1,7 @@
 package org.codehaus.groovy.grails.plugins.jcr.mapping;
 
 import org.apache.jackrabbit.ocm.mapper.impl.AbstractMapperImpl;
+import org.codehaus.groovy.grails.commons.GrailsDomainClass;
 
 import java.io.InputStream;
 import java.io.FileInputStream;
@@ -39,5 +40,9 @@ class DelegatingMapper extends AbstractMapperImpl {
 
     public void registerDigestedClass(InputStream inputStream) {
         ((DelegatingDescriptorReader)descriptorReader).registerDigestedClass(inputStream);
+    }
+
+    public void registerGrailsDomainClass(GrailsDomainClass domainClass) {
+        ((DelegatingDescriptorReader)descriptorReader).registerGrailsDomainClass(domainClass);
     }
 }

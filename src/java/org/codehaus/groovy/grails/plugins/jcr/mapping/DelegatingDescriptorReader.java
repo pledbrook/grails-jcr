@@ -5,6 +5,7 @@ import org.apache.jackrabbit.ocm.mapper.impl.digester.DigesterDescriptorReader;
 import org.apache.jackrabbit.ocm.mapper.model.MappingDescriptor;
 import org.apache.jackrabbit.ocm.mapper.model.ClassDescriptor;
 import org.apache.jackrabbit.ocm.mapper.DescriptorReader;
+import org.codehaus.groovy.grails.commons.GrailsDomainClass;
 
 import java.io.InputStream;
 import java.util.*;
@@ -17,7 +18,7 @@ import java.util.*;
 class DelegatingDescriptorReader implements DescriptorReader {
     private List<Class> annotatedClasses = new ArrayList<Class>();
     private List<InputStream> xmlInputStreams = new ArrayList<InputStream>();
-    private List<Class> conventionalClasses = new ArrayList<Class>();
+    private List<GrailsDomainClass> grailsDomainClasses = new ArrayList<GrailsDomainClass>();
 
     public MappingDescriptor loadClassDescriptors() {
         MappingDescriptor result = new MappingDescriptor();
@@ -33,7 +34,7 @@ class DelegatingDescriptorReader implements DescriptorReader {
             result.addClassDescriptor(classDescriptor);
         }
 
-        GrailsDescriptorReader grailsDescriptorReader = new GrailsDescriptorReader(conventionalClasses);
+        GrailsDescriptorReader grailsDescriptorReader = new GrailsDescriptorReader(grailsDomainClasses);
         descriptor = grailsDescriptorReader.loadClassDescriptors();
         for(ClassDescriptor classDescriptor : (Collection<ClassDescriptor>) descriptor.getAllClassDescriptors()) {
             result.addClassDescriptor(classDescriptor);
@@ -50,7 +51,7 @@ class DelegatingDescriptorReader implements DescriptorReader {
         annotatedClasses.add(annotatedClass);
     }
 
-    public void registerConventionalClass(Class conventionalClass) {
-        conventionalClasses.add(conventionalClass);
+    public void registerGrailsDomainClass(GrailsDomainClass domainClass) {
+        grailsDomainClasses.add(domainClass);
     }
 }

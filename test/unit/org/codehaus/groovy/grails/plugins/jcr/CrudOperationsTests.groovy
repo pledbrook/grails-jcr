@@ -170,21 +170,17 @@ class CrudOperationsTests extends AbstractJcrPluginTest {
 
     void registerDomainClasses() {
         gcl.parseClass("""\
-import org.apache.jackrabbit.ocm.mapper.impl.annotation.Field;
-import org.apache.jackrabbit.ocm.mapper.impl.annotation.Node;
-
-@Node(jcrMixinTypes="mix:referenceable, mix:versionable")
 class WikiEntry {
    static mapWith = 'jcr'
    static namespace = 'wiki'
 
-   @Field(id=true) Long id
+   Long id
    String version
 
-   @Field(path=true) String path
-   @Field(uuid=true) String UUID
-   @Field String title
-   @Field String body
+   String path
+   String UUID
+   String title
+   String body
 }
 """)
     }

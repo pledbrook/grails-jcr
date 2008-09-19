@@ -140,35 +140,13 @@ class JcrGrailsPlugin {
         addVersioningSupport(dc, application, ctx)
     }
 
-    private addCommonMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+    private void addCommonMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
         def configuration = JcrConfigurator.readConfiguration(dc)
 
         mc.'static'.getGrailsJcrMapping = { ->
             configuration
-        }
-
-        /**
-         * getNode(UUID) method. Retrieves a JCR Node from a JCR repository using the repository generated UUID
-         */
-        mc.'static'.getNode = {String uuid ->
-            def result = null
-            if(uuid) {
-                withSession { Session session ->
-                    result = session.getNodeByUUID(uuid)
-                }
-            }
-            result
-        }
-
-        /**
-         * getRepositoryName() dynamic method. Retrieves the repository name of the class including optional
-         * name space prefix
-         */
-        mc.'static'.getRepositoryName = {->
-            def pfx = delegate.getNamespacePrefix()
-            "$pfx:${dc.shortName}"
         }
 
         mc.'static'.getDomainPath = { ->
@@ -193,7 +171,17 @@ class JcrGrailsPlugin {
         }
     }
 
-    private addNamespaceMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+    private void addTransactionSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+        def mc = dc.metaClass
+
+        mc.'static'.withTransaction = {Closure callable ->
+            new TransactionTemplate(ctx.jcrTransactionManager).execute({status ->
+                callable.call(status)
+            } as TransactionCallback)
+        }
+    }
+
+    private void addNamespaceMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
         def ns = dc.getPropertyValue('namespace')
@@ -234,7 +222,7 @@ class JcrGrailsPlugin {
         }
     }
 
-    private addBasicPersistenceMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+    private void addBasicPersistenceMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
         mc.delete = {->
@@ -330,7 +318,7 @@ class JcrGrailsPlugin {
         }
     }
 
-    private addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+    private void addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
         /**
@@ -371,6 +359,59 @@ class JcrGrailsPlugin {
             withOcm { ObjectContentManager ocm ->
                 if(log.debugEnabled) log.debug "Attempting to execute query: $queryClause"
                 ocm.getObjects(queryClause, args?.lang == 'sql' ? javax.jcr.query.Query.SQL : javax.jcr.query.Query.XPATH)
+            }
+        }
+    }
+
+    private void addLockingSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
+        def mc = dc.metaClass
+
+        mc.lock = { ->
+            lock(true)
+        }
+
+        /**
+         * lock(boolean) method. Attempts to obtain a lock on a Node or Object.
+         * If a lock cannot be obtained null is returned
+         */
+        mc.lock = {boolean isSessionScoped ->
+            withOcm { ObjectContentManager ocm ->
+                if(ocm.isLocked(delegate.path)) {
+                    return null
+                } else {
+                    try {
+                        return ocm.lock(delegate.path, true, isSessionScoped)
+                    } catch (Exception e) {
+                        throw new GrailsRepositoryException("Lock cannot be obtained on node ${delegate.path}", e)
+                    }
+
+                }
+            }
+        }
+
+        /**
+         * unlock() method. Removes the lock held on the current node, or returns null
+         * */
+        mc.unlock = {->
+            withOcm { ObjectContentManager ocm ->
+                if(!ocm.isLocked(delegate.path)) {
+                    return
+                } else {
+                    try {
+                        ocm.unlock(delegate.path, null)
+                    } catch (Exception e) {
+                        throw new GrailsRepositoryException("Cannot unlock node ${delegate.path}", e)
+                    }
+                }
+            }
+        }
+
+        /**
+         * isLocked() method. Returns true if there is a lock on the specified object's Node
+         */
+        mc.isLocked = {->
+            withOcm { ObjectContentManager ocm ->
+                ocm.isLocked(delegate.path)
             }
         }
     }
@@ -449,68 +490,6 @@ class JcrGrailsPlugin {
 
     }
 
-    private addTransactionSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
-        def mc = dc.metaClass
-
-        mc.'static'.withTransaction = {Closure callable ->
-            new TransactionTemplate(ctx.jcrTransactionManager).execute({status ->
-                callable.call(status)
-            } as TransactionCallback)
-        }
-    }
-
-    private addLockingSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
-        def mc = dc.metaClass
-
-        mc.lock = { ->
-            lock(true)
-        }
-
-        /**
-         * lock(boolean) method. Attempts to obtain a lock on a Node or Object.
-         * If a lock cannot be obtained null is returned
-         */
-        mc.lock = {boolean isSessionScoped ->
-            withOcm { ObjectContentManager ocm ->
-                if(ocm.isLocked(delegate.path)) {
-                    return null
-                } else {
-                    try {
-                        return ocm.lock(delegate.path, true, isSessionScoped)
-                    } catch (Exception e) {
-                        throw new GrailsRepositoryException("Lock cannot be obtained on node ${delegate.path}", e)
-                    }
-
-                }
-            }
-        }
-
-        /**
-         * unlock() method. Removes the lock held on the current node, or returns null
-         * */
-        mc.unlock = {->
-            withOcm { ObjectContentManager ocm ->
-                if(!ocm.isLocked(delegate.path)) {
-                    return
-                } else {
-                    try {
-                        ocm.unlock(delegate.path, null)
-                    } catch (Exception e) {
-                        throw new GrailsRepositoryException("Cannot unlock node ${delegate.path}", e)
-                    }
-                }
-            }
-        }
-
-        /**
-         * isLocked() method. Returns true if there is a lock on the specified object's Node
-         */
-        mc.isLocked = {->
-            withOcm { ObjectContentManager ocm ->
-                ocm.isLocked(delegate.path)
-            }
-        }
-    }
 
     private addVersioningSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass

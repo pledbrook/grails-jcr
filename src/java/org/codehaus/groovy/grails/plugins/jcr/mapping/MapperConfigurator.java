@@ -2,6 +2,10 @@ package org.codehaus.groovy.grails.plugins.jcr.mapping;
 
 import org.apache.jackrabbit.ocm.mapper.Mapper;
 import org.apache.jackrabbit.ocm.mapper.impl.annotation.Node;
+import org.codehaus.groovy.grails.commons.GrailsApplication;
+import org.codehaus.groovy.grails.commons.ApplicationHolder;
+import org.codehaus.groovy.grails.commons.GrailsDomainClass;
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler;
 
 import java.io.InputStream;
 import java.util.List;
@@ -14,6 +18,7 @@ import java.util.List;
 public class MapperConfigurator {
     static Mapper configureMapper(List<Class> classes) {
         DelegatingMapper mapper = new DelegatingMapper();
+        GrailsApplication application = ApplicationHolder.getApplication();
         for(Class clazz : classes) {
             if(clazz.getAnnotation(Node.class) != null) {
                 mapper.registerAnnotatedClass(clazz);
@@ -22,7 +27,10 @@ public class MapperConfigurator {
                 if(xmlStream != null) {
                     mapper.registerDigestedClass(xmlStream);
                 } else {
-                    // Conventional configuration for Grails Domain Classes
+                    if(application != null && application.isArtefactOfType(DomainClassArtefactHandler.TYPE, clazz)) {
+                        GrailsDomainClass domainClass = (GrailsDomainClass) application.getArtefact(DomainClassArtefactHandler.TYPE, clazz.getName());
+                        mapper.registerGrailsDomainClass(domainClass);
+                    }
                 }
             }
         }
