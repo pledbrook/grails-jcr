@@ -311,7 +311,8 @@ class JcrGrailsPlugin {
                         ocm.getObjectIterator(
                                 query,
                                 args?.lang == 'sql' ? javax.jcr.query.Query.SQL : javax.jcr.query.Query.XPATH
-                        ), args?.offset?.toInteger(), args?.max?.toInteger())
+                        ), args?.offset?.toInteger(), args?.max?.toInteger()
+                )
             }
         }
     }
@@ -420,13 +421,9 @@ class JcrGrailsPlugin {
          * a JCR content repository. Example findByTitleAndReleaseDate
          */
         mc.'static'./^(findBy)(\w+)$/ = {matcher, args ->
-            def result = null
             def query = dc.getClazz()."queryFor${matcher.group(2)}"(* args)
-            def queryResults = executeQuery(query.toString())
-            if(queryResults.nodes.hasNext()) {
-                result = create(queryResults.nodes.iterator().nextNode())
-            }
-            result
+            def iterator = getObjectIterator(query, null)
+            iterator.hasNext() ? iterator.next() : null
         }
 
         /**
@@ -434,13 +431,9 @@ class JcrGrailsPlugin {
          * a JCR content repository. Example findByTitleAndReleaseDate
          */
         mc.'static'./^(countBy)(\w+)$/ = {matcher, args ->
-            def result = 0
             def query = dc.getClazz()."queryFor${matcher.group(2)}"(* args)
-            def queryResult = executeQuery(query.toString())
-            if(queryResult.nodes.hasNext()) {
-                result = queryResult.nodes.size
-            }
-            result
+            def iterator = getObjectIterator(query, null)
+            iterator.size()
         }
 
         /**
@@ -449,43 +442,18 @@ class JcrGrailsPlugin {
          */
         mc.'static'./^(findAllBy)(\w+)$/ = {matcher, args ->
             def query = dc.getClazz()."queryFor${matcher.group(2)}"(* args)
-            def result = executeQuery(query.toString())
-            def results = []
-            if(result.nodes.hasNext()) {
-                result.nodes.each {node ->
-                    results << create(node)
-                }
-            }
-            results
+            def iterator = getObjectIterator(query, null)
+            iterator.toList()
         }
 
         /**
-         * Dynamic queryFor* method. Returns a String query for given finder expression.
+         * Dynamic queryFor* method. Returns a Query for given finder expression.
          * Example queryForTitleAndReleaseDate
          */
-//        mc.'static'./^(queryFor)(\w+)$/ = {matcher, args ->
-//            def method = new ClosureInvokingXPathFinderMethod(~/^(queryFor)(\w+)$/,
-//                    application,
-//                    getNamespacePrefix()) {methodName, arguments, expressions, operator ->
-//                def query = new StringBuffer("//${getRepositoryName()}")
-//
-//                // begin predicate
-//                query << "["
-//                if(expressions.size == 1) {
-//                    query << expressions.iterator().next().criterion.toString()
-//                } else {
-//                    def criterions = expressions.criterion.collect {"(${it.toString()})"}
-//                    query << criterions.join(" $operator ")
-//                }
-//                // end predicate
-//                query << "]"
-//                query.toString()
-//            }
-//            method.invoke(dc.getClazz(), matcher.group(), args)
-//        }
-
         mc.'static'./^(queryFor)(\w+)$/ = {matcher, args ->
-            println "${matcher.group()} -  $args"
+            withOcm { ObjectContentManager ocm ->
+                new QueryConstructor(ocm.getQueryManager(), dc).createDynamicQuery(matcher.group(2), args.toList(), null)
+            }
         }
     }
 
