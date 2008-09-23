@@ -81,8 +81,6 @@ class QueryConstructor {
             }
         }
 
-        println filter
-
         Query result = configureFinalQuery(filter, args)
         return result
     }

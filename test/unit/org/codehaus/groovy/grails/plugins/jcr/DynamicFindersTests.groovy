@@ -14,7 +14,7 @@ class DynamicFindersTests extends AbstractJcrPluginTest {
     Class domainClass
 
     @Test
-    void testFind() {
+    void testFindBy() {
         def result = domainClass.findByTitle("title3")
         assertNotNull result
         assertEquals 3, result.id
@@ -25,6 +25,43 @@ class DynamicFindersTests extends AbstractJcrPluginTest {
 
         result = domainClass.findByTitleAndBody("title4", "body2")
         assertNull result
+
+        result = domainClass.findByAgeBetween(23, 25)
+        assertNotNull result
+
+        result = domainClass.findByAgeBetween(33, 35)
+        assertNull result
+    }
+
+    @Test
+    void testFindAllBy() {
+        def results = domainClass.findAllByTitle("title7")
+        assertEquals 1, results.size()
+
+        results = domainClass.findAllByTitle("title13")
+        assertEquals 0, results.size()
+
+        results = domainClass.findAllByTitleLike("title%")
+        assertEquals 10, results.size()
+
+        results = domainClass.findAllByBodyContains("Groovy")
+        assertEquals 1, results.size()
+
+        results = domainClass.findAllByAgeBetweenOrAge(23, 25, 40)
+        assertEquals 4, results.size()
+    }
+
+    @Test
+    void testCountBy() {
+        assertEquals 1, domainClass.countByTitle("title7")
+
+        assertEquals 0, domainClass.countByTitle("title13")
+
+        assertEquals 10, domainClass.countByTitleLike("title%")
+
+        assertEquals 1, domainClass.countByBodyContains("Groovy")
+
+        assertEquals 4, domainClass.countByAgeBetweenOrAge(23, 25, 40)
     }
 
     void registerDomainClasses() {
@@ -59,6 +96,13 @@ class WikiEntry {
             wikiEntry.age = 20 + it
             wikiEntry.save()
         }
+        def wikiEntry = domainClass.newInstance()
+        wikiEntry.id = 10
+        wikiEntry.title = "Groovy In Action"
+        wikiEntry.body = "Groovy In Action is a cool book"
+        wikiEntry.age = 40
+        wikiEntry.save()
+
     }
 
     @AfterMethod
