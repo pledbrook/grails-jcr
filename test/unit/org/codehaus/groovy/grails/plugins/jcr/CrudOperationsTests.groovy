@@ -58,6 +58,38 @@ class CrudOperationsTests extends AbstractJcrPluginTest {
     }
 
     @Test (dependsOnMethods = ["testSave"])
+    void testListWithOrderBy() {
+        (0..9).each {
+            def wikiEntry = domainClass.newInstance()
+            wikiEntry.id = it
+            wikiEntry.title = "title${(int) (it / 5)}"
+            wikiEntry.body = "body${9 - it}"
+            wikiEntry.save()
+        }
+
+        assertEquals([9, 8, 7, 6, 5, 4, 3, 2, 1, 0], domainClass.list([orderBy: 'body']).collect {it.id})
+        assertEquals([9, 8, 7, 6, 5, 4, 3, 2, 1, 0], domainClass.list([orderBy: ['id': 'desc']]).collect {it.id})
+        assertEquals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], domainClass.list([orderBy: ['id']]).collect {it.id})
+        assertEquals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], domainClass.list([orderBy: ['body': 'desc']]).collect {it.id})
+        assertEquals([4, 3, 2, 1, 0, 9, 8, 7, 6, 5], domainClass.list([orderBy: ['title': 'asc', 'body': 'asc']]).collect {it.id})
+        assertEquals([5, 6, 7, 8, 9, 0, 1, 2, 3, 4], domainClass.list([orderBy: ['title': 'desc', 'id': 'asc']]).collect {it.id})
+    }
+
+    @Test (dependsOnMethods = ["testSave"])
+    void testListWithOffsetAndMax() {
+        (0..9).each {
+            def wikiEntry = domainClass.newInstance()
+            wikiEntry.id = it
+            wikiEntry.title = "title$it"
+            wikiEntry.body = "body$it"
+            wikiEntry.save()
+        }
+
+        assertEquals([3,4,5], domainClass.list([offset:3, max:3, orderBy:'id']).collect {it.id})
+        assertEquals([1,0], domainClass.list([offset:8, max:2, orderBy:['id':'desc']]).collect {it.id})
+    }
+
+    @Test (dependsOnMethods = ["testSave"])
     void testGet() {
         def wikiEntry = domainClass.newInstance()
 

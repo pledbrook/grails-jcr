@@ -112,41 +112,20 @@ class WikiEntry {
         assertEquals "wiki:", config.namespace
     }
 
-    void testFindAll() {
-        println "Starting a test"
+    void testWithSession() {
         def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry1 = ga.getDomainClass("WikiEntry").newInstance()
-        def wikiEntry2 = ga.getDomainClass("WikiEntry").newInstance()
-        def wikiEntry3 = ga.getDomainClass("WikiEntry").newInstance()
 
-        wikiEntry1.title = "fred"
-        wikiEntry1.body = "flintstone"
+        wikiEntryClass.withSession {session ->
+            assert session != null
+        }
 
+    }
 
-        wikiEntry2.title = "wilma"
-        wikiEntry2.body = "flintstone"
+    void testNamespaceInfo() {
+        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
 
-        wikiEntry3.title = "fred"
-        wikiEntry3.body = "xxx"
-
-        println "Inited three entries: ${wikiEntry1.UUID}, ${wikiEntry2.UUID}, ${wikiEntry3.UUID}"
-
-        wikiEntry1.save()
-        wikiEntry2.save()
-        wikiEntry3.save()
-
-        println "Saved three entries: ${wikiEntry1.UUID}, ${wikiEntry2.UUID}, ${wikiEntry3.UUID}"
-
-        def session = repository.login(new SimpleCredentials("Sergey Nebolsin", "passwd".toCharArray()));
-        session.exportDocumentView("/", System.out, false, false)
-
-        def results = wikiEntryClass.findAll("//wiki:WikiEntry[@wiki:title = 'fred']")
-
-        println "Found: $results"
-
-        assertEquals "Wrong result size", 2, results.size
-        assertTrue "fred flinstone was not returned", results.any { it?.title == 'fred' && it?.body == 'flintstone' }
-        assertTrue "fred xxx was not returned", results.any { it?.title == 'fred' && it?.body == 'xxx'}
+        assertEquals "wiki", wikiEntryClass.getNamespacePrefix()
+        assertEquals "http://grails.org/wiki/", wikiEntryClass.getNamespaceURI()
 
     }
 
@@ -168,191 +147,4 @@ class WikiEntry {
         assertNotNull wikiEntry
 
     }
-
-    void testSave() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "foo"
-        wikiEntry.body = "bar"
-
-        wikiEntry.save()
-
-        assertNotNull wikiEntry.UUID
-
-        wikiEntryClass.withSession {session ->
-            def saved = session.getNodeByUUID(wikiEntry.UUID)
-            assertEquals "foo", saved.getProperty("wiki:title").getString()
-            assertEquals "bar", saved.getProperty("wiki:body").getString()
-        }
-
-    }
-
-    void testList() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-        def wikiEntry2 = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "foo"
-        wikiEntry.body = "bar"
-
-        wikiEntry.save()
-
-        wikiEntry2.title = "test"
-        wikiEntry2.body = "post"
-        wikiEntry2.save()
-
-
-        List results = wikiEntryClass.list()
-
-        assertNotNull(results)
-
-        def one = results.find { it.title == "foo" }
-
-        assertNotNull(one)
-
-        def two = results.find { it.body == "post" }
-
-        assertNotNull(two)
-
-
-    }
-
-    /*void testListWithOffsetMax() {
-            def wikiEntryClass =  ga.getDomainClass("WikiEntry").getClazz()
-            def wikiEntry =  ga.getDomainClass("WikiEntry").newInstance()
-            def wikiEntry2 =  ga.getDomainClass("WikiEntry").newInstance()
-
-            wikiEntry.title = "foo"
-            wikiEntry.body = "bar"
-
-            wikiEntry.save()
-
-            wikiEntry2.title = "test"
-            wikiEntry2.body = "post"
-            wikiEntry2.save()
-
-
-            List results = wikiEntryClass.list(offset:1, max:1)
-
-            assertEquals 1, results.size()
-
-    }*/
-
-    void testWithSession() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-
-        wikiEntryClass.withSession {session ->
-            assert session != null
-        }
-
-    }
-
-    void testNamespaceInfo() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-
-        assertEquals "wiki", wikiEntryClass.getNamespacePrefix()
-        assertEquals "http://grails.org/wiki/", wikiEntryClass.getNamespaceURI()
-
-    }
-
-
-    void testGet() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "foo"
-        wikiEntry.body = "bar"
-
-        wikiEntry.save()
-
-        assert wikiEntry.UUID != null
-        def UUID = wikiEntry.UUID
-        wikiEntry = null
-
-        wikiEntry = wikiEntryClass.get(UUID)
-
-        assert wikiEntry != null
-
-        assertEquals "foo", wikiEntry.title
-        assertEquals "bar", wikiEntry.body
-    }
-
-    void testUpdate() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "foo"
-        wikiEntry.body = "bar"
-
-        wikiEntry.save()
-
-        assert wikiEntry.UUID != null
-        def UUID = wikiEntry.UUID
-        wikiEntry = null
-
-        wikiEntry = wikiEntryClass.get(UUID)
-
-        assert wikiEntry != null
-
-        assertEquals "foo", wikiEntry.title
-        assertEquals "bar", wikiEntry.body
-
-        wikiEntry.title = "bar"
-        wikiEntry.body = "foo"
-
-        wikiEntry.save()
-
-        wikiEntry = null
-
-        wikiEntry = wikiEntryClass.get(UUID)
-
-        assert wikiEntry != null
-
-        assertEquals "bar", wikiEntry.title
-        assertEquals "foo", wikiEntry.body
-    }
-
-
-    void testFind() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "fred"
-        wikiEntry.body = "flintstone"
-
-        wikiEntry.save()
-
-        wikiEntry = null
-
-        wikiEntry = wikiEntryClass.find("//wiki:WikiEntry[@wiki:title = 'fred']")
-
-        assert wikiEntry != null
-
-        assertEquals "fred", wikiEntry.title
-        assertEquals "flintstone", wikiEntry.body
-
-    }
-
-
-
-    void testLockAndUnlock() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "dino"
-        wikiEntry.body = "dinosaur"
-
-        wikiEntry.save()
-
-        def lock = wikiEntry.lock(true)
-        assertNotNull lock
-
-        assertTrue wikiEntry.isLocked()
-        wikiEntry.unlock()
-        assertFalse wikiEntry.isLocked()
-
-    }
-
-
 }

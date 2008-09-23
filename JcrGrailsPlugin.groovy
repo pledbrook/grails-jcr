@@ -82,7 +82,7 @@ class JcrGrailsPlugin {
         }
 
         ReflectionUtils.classLoader = application.classLoader
-        
+
         jcrMapper(JcrMapperFactoryBean) {
             mappedClasses = classes
         }
@@ -98,10 +98,9 @@ class JcrGrailsPlugin {
             throw new GrailsConfigurationException("Grails JCR plugin cannot be used without an implementation plugin, for example Grails JackRabbit plugin")
         }
 
-
         // create parent nodes for all domain classes
-        application.domainClasses.each { GrailsDomainClass dc ->
-            dc.clazz.withSession { Session session ->
+        application.domainClasses.each {GrailsDomainClass dc ->
+            dc.clazz.withSession {Session session ->
                 def path = dc.clazz.getDomainPath()[1..-1]
                 if(!session.getRootNode().hasNode(path)) {
                     println "Creating base Domain Class node for class: ${dc.shortName}"
@@ -145,11 +144,11 @@ class JcrGrailsPlugin {
 
         def configuration = JcrConfigurator.readConfiguration(dc)
 
-        mc.'static'.getGrailsJcrMapping = { ->
+        mc.'static'.getGrailsJcrMapping = {->
             configuration
         }
 
-        mc.'static'.getDomainPath = { ->
+        mc.'static'.getDomainPath = {->
             "/$dc.shortName"
         }
 
@@ -158,7 +157,7 @@ class JcrGrailsPlugin {
          */
         mc.'static'.withSession = {Closure closure ->
             closure.delegate = delegate
-            withOcm { ocm ->
+            withOcm {ocm ->
                 closure.call(ocm.session)
             }
         }
@@ -226,14 +225,14 @@ class JcrGrailsPlugin {
         def mc = dc.metaClass
 
         mc.delete = {->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 ocm.remove(delegate.path)
                 ocm.save()
             }
         }
 
         mc.save = {->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 if(delegate.path) {
                     ocm.checkout delegate.path
                     ocm.update delegate
@@ -244,6 +243,7 @@ class JcrGrailsPlugin {
                     delegate.path = "${getDomainPath()}/${delegate.id}"
                     ocm.insert delegate
                     ocm.save()
+                    ocm.checkin delegate.path
                 }
             }
         }
@@ -252,7 +252,7 @@ class JcrGrailsPlugin {
          * Domain.get(String path) dynamic method. Returns domain object by path.
          */
         mc.'static'.get = {String path ->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 ocm.getObject(dc.clazz, path)
             }
         }
@@ -261,7 +261,7 @@ class JcrGrailsPlugin {
          * Domain.getByUUID(String uuid) dynamic method. Returns domain object by UUID.
          */
         mc.'static'.getByUUID = {String uuid ->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 ocm.getObjectByUuid(uuid)
             }
         }
@@ -278,10 +278,10 @@ class JcrGrailsPlugin {
          * with respect to 'offset' and 'max' arguments in args.
          */
         mc.'static'.list = {Map args ->
-            ObjectIterator iterator = getObjectIterator()
+            ObjectIterator iterator = getObjectIterator(args)
             if(!args) args = [:]
-            def offset = args.offset ? args.offset.toInteger() : 0
-            def max = args.max ? args.max.toInteger() : null
+            def offset = args?.offset ? args.offset.toInteger() : 0
+            def max = args?.max ? args.max.toInteger() : null
             def results = []
             if(iterator.size > offset) {
                 if(offset > 0) {
@@ -307,12 +307,44 @@ class JcrGrailsPlugin {
             iterator.size
         }
 
-        mc.'static'.getObjectIterator = {
-            withOcm { ObjectContentManager ocm ->
+        mc.'static'.getObjectIterator = {->
+            withOcm {ObjectContentManager ocm ->
                 QueryManager manager = ocm.getQueryManager()
                 Filter filter = manager.createFilter(dc.clazz)
                 filter.setScope("${getDomainPath()}//")
                 Query query = manager.createQuery(filter)
+                return ocm.getObjectIterator(query)
+            }
+        }
+
+        mc.'static'.getObjectIterator = {Map args ->
+            withOcm {ObjectContentManager ocm ->
+                QueryManager manager = ocm.getQueryManager()
+                Filter filter = manager.createFilter(dc.clazz)
+                filter.setScope("${getDomainPath()}//")
+                Query query = manager.createQuery(filter)
+                if(args?.orderBy) {
+                    if(args.orderBy instanceof Map) {
+                        args.orderBy.each {fieldName, type ->
+                            switch(type?.toString()) {
+                                case 'asc':
+                                    query.addOrderByAscending(fieldName)
+                                    break;
+                                case 'desc':
+                                    query.addOrderByDescending(fieldName)
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException("only 'asc' and 'desc' are allowed order types")
+                            }
+                        }
+                    } else if(args.orderBy instanceof Collection) {
+                        args.orderBy.each {it ->
+                            query.addOrderByAscending(it.toString())
+                        }
+                    } else {
+                        query.addOrderByAscending(args.orderBy.toString())
+                    }
+                }
                 return ocm.getObjectIterator(query)
             }
         }
@@ -325,7 +357,7 @@ class JcrGrailsPlugin {
          * find(String query) dynamic method. Finds and returns the first result of the XPath query or null
          */
         mc.'static'.find = {String queryString ->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 QueryManager manager = ocm.getQueryManager()
                 Filter filter = manager.createFilter(dc.clazz)
                 filter.setScope("${getDomainPath()}//")
@@ -340,7 +372,7 @@ class JcrGrailsPlugin {
          * findAll(String query) dynamic method. Finds and returns the results of the XPath query or an empty list
          */
         mc.'static'.findAll = {String queryString ->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 QueryManager manager = ocm.getQueryManager()
                 Filter filter = manager.createFilter(dc.clazz)
                 filter.setScope("${getDomainPath()}//")
@@ -356,7 +388,7 @@ class JcrGrailsPlugin {
         }
 
         mc.'static'.executeQuery = {String queryClause, Map args ->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 if(log.debugEnabled) log.debug "Attempting to execute query: $queryClause"
                 ocm.getObjects(queryClause, args?.lang == 'sql' ? javax.jcr.query.Query.SQL : javax.jcr.query.Query.XPATH)
             }
@@ -366,7 +398,7 @@ class JcrGrailsPlugin {
     private void addLockingSupport(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
-        mc.lock = { ->
+        mc.lock = {->
             lock(true)
         }
 
@@ -375,7 +407,7 @@ class JcrGrailsPlugin {
          * If a lock cannot be obtained null is returned
          */
         mc.lock = {boolean isSessionScoped ->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 if(ocm.isLocked(delegate.path)) {
                     return null
                 } else {
@@ -393,7 +425,7 @@ class JcrGrailsPlugin {
          * unlock() method. Removes the lock held on the current node, or returns null
          * */
         mc.unlock = {->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 if(!ocm.isLocked(delegate.path)) {
                     return
                 } else {
@@ -410,7 +442,7 @@ class JcrGrailsPlugin {
          * isLocked() method. Returns true if there is a lock on the specified object's Node
          */
         mc.isLocked = {->
-            withOcm { ObjectContentManager ocm ->
+            withOcm {ObjectContentManager ocm ->
                 ocm.isLocked(delegate.path)
             }
         }
@@ -467,27 +499,30 @@ class JcrGrailsPlugin {
          * Dynamic queryFor* method. Returns a String query for given finder expression.
          * Example queryForTitleAndReleaseDate
          */
+//        mc.'static'./^(queryFor)(\w+)$/ = {matcher, args ->
+//            def method = new ClosureInvokingXPathFinderMethod(~/^(queryFor)(\w+)$/,
+//                    application,
+//                    getNamespacePrefix()) {methodName, arguments, expressions, operator ->
+//                def query = new StringBuffer("//${getRepositoryName()}")
+//
+//                // begin predicate
+//                query << "["
+//                if(expressions.size == 1) {
+//                    query << expressions.iterator().next().criterion.toString()
+//                } else {
+//                    def criterions = expressions.criterion.collect {"(${it.toString()})"}
+//                    query << criterions.join(" $operator ")
+//                }
+//                // end predicate
+//                query << "]"
+//                query.toString()
+//            }
+//            method.invoke(dc.getClazz(), matcher.group(), args)
+//        }
+
         mc.'static'./^(queryFor)(\w+)$/ = {matcher, args ->
-            def method = new ClosureInvokingXPathFinderMethod(~/^(queryFor)(\w+)$/,
-                    application,
-                    getNamespacePrefix()) {methodName, arguments, expressions, operator ->
-                def query = new StringBuffer("//${getRepositoryName()}")
-
-                // begin predicate
-                query << "["
-                if(expressions.size == 1) {
-                    query << expressions.iterator().next().criterion.toString()
-                } else {
-                    def criterions = expressions.criterion.collect {"(${it.toString()})"}
-                    query << criterions.join(" $operator ")
-                }
-                // end predicate
-                query << "]"
-                query.toString()
-            }
-            method.invoke(dc.getClazz(), matcher.group(), args)
+            println "${matcher.group()} -  $args"
         }
-
     }
 
 

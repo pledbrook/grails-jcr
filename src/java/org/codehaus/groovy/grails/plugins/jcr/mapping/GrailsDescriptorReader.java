@@ -1,9 +1,7 @@
 package org.codehaus.groovy.grails.plugins.jcr.mapping;
 
 import org.apache.jackrabbit.ocm.mapper.DescriptorReader;
-import org.apache.jackrabbit.ocm.mapper.model.MappingDescriptor;
-import org.apache.jackrabbit.ocm.mapper.model.ClassDescriptor;
-import org.apache.jackrabbit.ocm.mapper.model.FieldDescriptor;
+import org.apache.jackrabbit.ocm.mapper.model.*;
 import org.codehaus.groovy.grails.commons.*;
 
 import java.util.List;
@@ -39,7 +37,11 @@ public class GrailsDescriptorReader implements DescriptorReader {
 
         descriptor.addFieldDescriptor(configureFieldDescriptor(domainClass.getIdentifier()));
         for(GrailsDomainClassProperty property : domainClass.getPersistentProperties()) {
-            descriptor.addFieldDescriptor(configureFieldDescriptor(property));
+            if(property.isAssociation()) {
+
+            } else {
+                descriptor.addFieldDescriptor(configureFieldDescriptor(property));
+            }
         }
 
         return descriptor;
@@ -59,5 +61,15 @@ public class GrailsDescriptorReader implements DescriptorReader {
         fieldDescriptor.setJcrProtected(false);
 
         return fieldDescriptor;
+    }
+
+    private BeanDescriptor configureBeanDescriptor(GrailsDomainClassProperty property) {
+        BeanDescriptor beanDescriptor = new BeanDescriptor();
+        return beanDescriptor;
+    }
+
+    private CollectionDescriptor configureCollectionDescriptor(GrailsDomainClassProperty property) {
+        CollectionDescriptor collectionDescriptor = new CollectionDescriptor();
+        return collectionDescriptor;
     }
 }
