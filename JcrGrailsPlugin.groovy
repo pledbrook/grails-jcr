@@ -19,7 +19,6 @@ import javax.jcr.*
 import javax.jcr.version.*
 import org.codehaus.groovy.grails.exceptions.*
 import org.codehaus.groovy.grails.plugins.jcr.JcrConstants
-import org.codehaus.groovy.grails.plugins.jcr.metaclass.*
 import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.springframework.context.ApplicationContext
@@ -32,11 +31,8 @@ import org.codehaus.groovy.grails.plugins.jcr.JcrConfigurator
 import org.codehaus.groovy.grails.commons.GrailsClassUtils as GCU
 import org.codehaus.groovy.grails.plugins.jcr.mapping.JcrMapperFactoryBean
 import org.apache.jackrabbit.ocm.manager.ObjectContentManager
-import org.apache.jackrabbit.ocm.query.QueryManager
 import org.apache.jackrabbit.ocm.reflection.ReflectionUtils
-import org.apache.jackrabbit.ocm.query.Filter
 import org.apache.jackrabbit.ocm.query.Query
-import org.apache.jackrabbit.ocm.manager.impl.ObjectIterator
 import org.codehaus.groovy.grails.plugins.jcr.exceptions.GrailsRepositoryException
 import org.codehaus.groovy.grails.plugins.jcr.query.QueryConstructor
 import org.codehaus.groovy.grails.plugins.jcr.mapping.PaginationObjectIterator
