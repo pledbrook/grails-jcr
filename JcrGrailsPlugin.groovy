@@ -38,6 +38,8 @@ import org.apache.jackrabbit.ocm.query.Filter
 import org.apache.jackrabbit.ocm.query.Query
 import org.apache.jackrabbit.ocm.manager.impl.ObjectIterator
 import org.codehaus.groovy.grails.plugins.jcr.exceptions.GrailsRepositoryException
+import org.codehaus.groovy.grails.plugins.jcr.query.QueryConstructor
+import org.codehaus.groovy.grails.plugins.jcr.mapping.PaginationObjectIterator
 
 /**
  * A plugin for the Grails framework (http://grails.org) that provides an ORM layer onto the
@@ -278,24 +280,7 @@ class JcrGrailsPlugin {
          * with respect to 'offset' and 'max' arguments in args.
          */
         mc.'static'.list = {Map args ->
-            ObjectIterator iterator = getObjectIterator(args)
-            if(!args) args = [:]
-            def offset = args?.offset ? args.offset.toInteger() : 0
-            def max = args?.max ? args.max.toInteger() : null
-            def results = []
-            if(iterator.size > offset) {
-                if(offset > 0) {
-                    iterator.skip(offset)
-                }
-                max = max ?: iterator.size
-                def i = 0
-                for(result in iterator) {
-                    if(i >= max) break
-                    results << result
-                    i++
-                }
-            }
-            results
+            getObjectIterator(args).toList()
         }
 
 
@@ -303,49 +288,30 @@ class JcrGrailsPlugin {
          * Domain.count() dynamic method. Returns the number of Objects in the JCR repository
          */
         mc.'static'.count = {->
-            def iterator = getObjectIterator()
+            def iterator = getObjectIterator(null)
             iterator.size
-        }
-
-        mc.'static'.getObjectIterator = {->
-            withOcm {ObjectContentManager ocm ->
-                QueryManager manager = ocm.getQueryManager()
-                Filter filter = manager.createFilter(dc.clazz)
-                filter.setScope("${getDomainPath()}//")
-                Query query = manager.createQuery(filter)
-                return ocm.getObjectIterator(query)
-            }
         }
 
         mc.'static'.getObjectIterator = {Map args ->
             withOcm {ObjectContentManager ocm ->
-                QueryManager manager = ocm.getQueryManager()
-                Filter filter = manager.createFilter(dc.clazz)
-                filter.setScope("${getDomainPath()}//")
-                Query query = manager.createQuery(filter)
-                if(args?.orderBy) {
-                    if(args.orderBy instanceof Map) {
-                        args.orderBy.each {fieldName, type ->
-                            switch(type?.toString()) {
-                                case 'asc':
-                                    query.addOrderByAscending(fieldName)
-                                    break;
-                                case 'desc':
-                                    query.addOrderByDescending(fieldName)
-                                    break;
-                                default:
-                                    throw new IllegalArgumentException("only 'asc' and 'desc' are allowed order types")
-                            }
-                        }
-                    } else if(args.orderBy instanceof Collection) {
-                        args.orderBy.each {it ->
-                            query.addOrderByAscending(it.toString())
-                        }
-                    } else {
-                        query.addOrderByAscending(args.orderBy.toString())
-                    }
-                }
-                return ocm.getObjectIterator(query)
+                Query query = new QueryConstructor(ocm.queryManager, dc).createQuery(args)
+                return getObjectIterator(query, args)
+            }
+        }
+
+        mc.'static'.getObjectIterator = {Query query, Map args ->
+            withOcm {ObjectContentManager ocm ->
+                return new PaginationObjectIterator(ocm.getObjectIterator(query), args?.offset?.toInteger(), args?.max?.toInteger())
+            }
+        }
+
+        mc.'static'.getObjectIterator = {String query, Map args ->
+            withOcm {ObjectContentManager ocm ->
+                return new PaginationObjectIterator(
+                        ocm.getObjectIterator(
+                                query,
+                                args?.lang == 'sql' ? javax.jcr.query.Query.SQL : javax.jcr.query.Query.XPATH
+                        ), args?.offset?.toInteger(), args?.max?.toInteger())
             }
         }
     }
@@ -353,32 +319,30 @@ class JcrGrailsPlugin {
     private void addQueryMethods(GrailsDomainClass dc, GrailsApplication application, ApplicationContext ctx) {
         def mc = dc.metaClass
 
+
+        mc.'static'.find = {String queryString -> find(queryString, null) }
+
         /**
          * find(String query) dynamic method. Finds and returns the first result of the XPath query or null
          */
-        mc.'static'.find = {String queryString ->
+        mc.'static'.find = {String queryString, Map args ->
             withOcm {ObjectContentManager ocm ->
-                QueryManager manager = ocm.getQueryManager()
-                Filter filter = manager.createFilter(dc.clazz)
-                filter.setScope("${getDomainPath()}//")
-                filter.addJCRExpression(queryString)
-                Query query = manager.createQuery(filter)
+                Query query = new QueryConstructor(ocm.getQueryManager(), dc).createJCRExpressionQuery(queryString, args)
                 def iterator = ocm.getObjectIterator(query)
                 iterator.hasNext() ? iterator.next() : null
             }
         }
 
+
+        mc.'static'.findAll = {String queryString -> findAll(queryString, null) }
+        
         /**
          * findAll(String query) dynamic method. Finds and returns the results of the XPath query or an empty list
          */
-        mc.'static'.findAll = {String queryString ->
+        mc.'static'.findAll = {String queryString, Map args ->
             withOcm {ObjectContentManager ocm ->
-                QueryManager manager = ocm.getQueryManager()
-                Filter filter = manager.createFilter(dc.clazz)
-                filter.setScope("${getDomainPath()}//")
-                filter.addJCRExpression(queryString)
-                Query query = manager.createQuery(filter)
-                ocm.getObjects(query)
+                Query query = new QueryConstructor(ocm.getQueryManager(), dc).createJCRExpressionQuery(queryString, args)
+                getObjectIterator(query, args).toList()
             }
         }
 
@@ -390,7 +354,7 @@ class JcrGrailsPlugin {
         mc.'static'.executeQuery = {String queryClause, Map args ->
             withOcm {ObjectContentManager ocm ->
                 if(log.debugEnabled) log.debug "Attempting to execute query: $queryClause"
-                ocm.getObjects(queryClause, args?.lang == 'sql' ? javax.jcr.query.Query.SQL : javax.jcr.query.Query.XPATH)
+                getObjectIterator(queryClause, args).toList()
             }
         }
     }
