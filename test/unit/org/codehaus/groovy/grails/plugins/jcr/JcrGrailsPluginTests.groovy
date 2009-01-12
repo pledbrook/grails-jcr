@@ -128,23 +128,4 @@ class WikiEntry {
         assertEquals "http://grails.org/wiki/", wikiEntryClass.getNamespaceURI()
 
     }
-
-    void testFindByMethod() {
-        def wikiEntryClass = ga.getDomainClass("WikiEntry").getClazz()
-        def wikiEntry = ga.getDomainClass("WikiEntry").newInstance()
-
-        wikiEntry.title = "foo"
-        wikiEntry.body = "bar"
-
-        wikiEntry.save()
-
-        wikiEntry = wikiEntryClass.findByTitle("foo")
-
-        assertNotNull wikiEntry
-
-        wikiEntry = wikiEntryClass.findByTitleAndBody("foo", "bar")
-
-        assertNotNull wikiEntry
-
-    }
 }

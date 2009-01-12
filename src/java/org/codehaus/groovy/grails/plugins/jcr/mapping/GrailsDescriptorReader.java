@@ -65,6 +65,9 @@ public class GrailsDescriptorReader implements DescriptorReader {
 
     private BeanDescriptor configureBeanDescriptor(GrailsDomainClassProperty property) {
         BeanDescriptor beanDescriptor = new BeanDescriptor();
+        beanDescriptor.setJcrName(property.getName());
+        beanDescriptor.setJcrMandatory(false);
+        beanDescriptor.setJcrAutoCreated(false);
         return beanDescriptor;
     }
 

@@ -33,6 +33,9 @@
       <entry name="?*.tld" />
     </wildcardResourcePatterns>
   </component>
+  <component name="CopyrightManager" default="">
+    <module2copyright />
+  </component>
   <component name="DependenciesAnalyzeManager">
     <option name="myForwardDirection" value="false" />
   </component>
@@ -228,13 +231,20 @@
   <component name="ProjectDetails">
     <option name="projectName" value="grails-jcr" />
   </component>
-  <component name="ProjectFileVersion" converted="true" />
+  <component name="ProjectFileVersion" converted="true">
+    <converter id="javaee-modules" />
+    <converter id="ror-modules" />
+    <converter id="SelenaRunConfToDiana" />
+  </component>
+  <component name="ProjectKey">
+    <option name="state" value="project:///Users/nebolsin/Documents/Projects/grails-jcr/grails-jcr.ipr" />
+  </component>
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/grails-jcr.iml" filepath="$PROJECT_DIR$/grails-jcr.iml" />
     </modules>
   </component>
-  <component name="ProjectRootManager" version="2" assert-keyword="true" jdk-15="true" project-jdk-name="1.5" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.5" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="ResourceManagerContainer">
@@ -266,8 +276,7 @@
     <option name="myVersion" value="123" />
   </component>
   <component name="VcsDirectoryMappings">
-    <mapping directory="" vcs="" />
-    <mapping directory="$PROJECT_DIR$" vcs="svn" />
+    <mapping directory="" vcs="Git" />
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="libraryTable">
@@ -275,14 +284,19 @@
       <CLASSES>
         <root url="jar://$PROJECT_DIR$/lib/jcr-1.0.jar!/" />
         <root url="jar://$PROJECT_DIR$/lib/spring-modules-jcr.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-ocm-1.5-SNAPSHOT.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/jackrabbit-ocm-1.5.0.jar!/" />
       </CLASSES>
-      <JAVADOC>
-        <root url="file:///Developer/Java/jsr170-1.0/docs" />
-      </JAVADOC>
+      <JAVADOC />
       <SOURCES>
-        <root url="jar:///Developer/Java/spring-modules-0.9-with-dependencies/sources/spring-modules-jcr-src.zip!/" />
-        <root url="file:///Users/nebolsin/Documents/Projects/jackrabbit/jackrabbit-ocm/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-commons/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm-nodemanagement/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm-nodemanagement/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-api/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-core/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-core/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-commons/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm/src/main/java" />
       </SOURCES>
     </library>
     <library name="JackRabbit">
@@ -291,8 +305,38 @@
       </CLASSES>
       <JAVADOC />
       <SOURCES>
-        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-core/src/main/java" />
-        <root url="file:///Developer/Java/jackrabbit-1.4/jackrabbit-api/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jca/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-servlet/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-commons/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jca/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-spi-commons/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-rmi/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-webdav/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-classloader/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-benchmark/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-server/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-spi2jcr/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm-nodemanagement/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-text-extractors/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-spi/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-webdav/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-rmi/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr2spi/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-tests/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm-nodemanagement/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-api/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-core/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-core/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-commons/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-spi/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr-server/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-spi2jcr/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-classloader/src/test/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-spi-commons/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-text-extractors/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-ocm/src/main/java" />
+        <root url="jar:///opt/local/share/java/jackrabbit/jackrabbit-1.5.0-src.jar!/jackrabbit-1.5.0/jackrabbit-jcr2spi/src/test/java" />
       </SOURCES>
       <jarDirectory url="file:///Users/nebolsin/Documents/Projects/grails-jackrabbit/lib" recursive="false" />
     </library>
@@ -304,8 +348,5 @@
       <SOURCES />
     </library>
   </component>
-  <UsedPathMacros>
-    <macro name="GRAILS_HOME" />
-  </UsedPathMacros>
 </project>
 
